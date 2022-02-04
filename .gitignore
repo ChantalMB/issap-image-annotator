@@ -1,5 +1,7 @@
-/node_modules/
-/public/build/
-/public/iss_images/*
+node_modules/
+public/build/
+public/iss_images/*
+!public/iss_images/.gitkeep 
+
 
 .DS_Store
