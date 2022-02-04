@@ -1,13 +1,20 @@
 <script>
 
 import { onMount } from 'svelte';
-import { infoStore, projName, select_display, exifData, selectedID } from './stores.js';
-import ExifReader from 'exifreader';
+import { tick } from 'svelte';
+
+import Save20 from "carbon-icons-svelte/lib/Save20";
+
+
+import { infoStore, projName, select_display, setImg, exifData, selectedID, artiStore, fileList, ctxtStore, shpStore, rowCheck, changingPicture, jumpToImgPanel } from './stores.js';
+import JSZip from 'jszip';
+import FileSaver from 'file-saver';
 
 import Sidebar from './Sidebar.svelte';
 let accessFunc;
 
 import Annotation_Editor from './Annotation_Editor.svelte';
+
 import Annotation_Canvas from './Annotation_Canvas.svelte'
 import Toolbar from './Toolbar.svelte';
 
@@ -15,13 +22,7 @@ import Toolbar from './Toolbar.svelte';
 var VERSION      = '1.0';
 var NAME         = 'ISSAP Image Excavation Tool';
 var SHORT_NAME   = 'ISSAP';
-var REGION_SHAPE = { RECT:'rect',
-                         CIRCLE:'circle',
-                         ELLIPSE:'ellipse',
-                         POLYGON:'polygon',
-                         POINT:'point',
-                         POLYLINE:'polyline'
-                       };
+
 
 var ATTRIBUTE_TYPE = { TEXT:'text',
                            CHECKBOX:'checkbox',
@@ -30,205 +31,14 @@ var ATTRIBUTE_TYPE = { TEXT:'text',
                            DROPDOWN:'dropdown'
                          };
 
-var DISPLAY_AREA_CONTENT_NAME = {IMAGE:'image_panel',
-                                     IMAGE_GRID:'image_grid_panel',
-                                     SETTINGS:'settings_panel',
-                                     PAGE_404:'page_404',
-                                     PAGE_ABOUT:'page_about',
-                                     PAGE_START_INFO:'page_start_info',
-                                     PAGE_LICENSE:'page_license'
-                                    };
 
-var ANNOTATION_EDITOR_MODE    = {SINGLE_REGION:'single_region',
-                                     ALL_REGIONS:'all_regions'};
 var ANNOTATION_EDITOR_PLACEMENT = {NEAR_REGION:'NEAR_REGION',
                                        IMAGE_BOTTOM:'IMAGE_BOTTOM',
                                        DISABLE:'DISABLE'};
 
-var REGION_EDGE_TOL           = 5;   // pixel
-var REGION_CONTROL_POINT_SIZE = 2;
-var POLYGON_VERTEX_MATCH_TOL  = 5;
-var REGION_MIN_DIM            = 3;
-var MOUSE_CLICK_TOL           = 2;
-var ELLIPSE_EDGE_TOL          = 0.2; // euclidean distance
-var THETA_TOL                 = Math.PI/18; // 10 degrees
-var POLYGON_RESIZE_VERTEX_OFFSET  = 100;
-var CANVAS_DEFAULT_ZOOM_LEVEL_INDEX = 3;
-var CANVAS_ZOOM_LEVELS = [0.25, 0.5, 0.75, 1.0, 1.5, 2.0, 2.5, 3.0, 4, 5, 6, 7, 8, 9, 10];
-var REGION_COLOR_LIST = ["#E69F00", "#56B4E9", "#009E73", "#D55E00", "#CC79A7", "#F0E442", "#ffffff"];
-// radius of control points in all shapes
-var REGION_SHAPES_POINTS_RADIUS = 3;
-// radius of control points in a point
-var REGION_POINT_RADIUS         = 3;
-var REGION_POINT_RADIUS_DEFAULT = 3;
 
-var THEME_REGION_BOUNDARY_WIDTH = 3;
-var THEME_BOUNDARY_LINE_COLOR   = "black";
-var THEME_BOUNDARY_FILL_COLOR   = "yellow";
-var THEME_SEL_REGION_FILL_COLOR = "#808080";
-var THEME_SEL_REGION_FILL_BOUNDARY_COLOR = "yellow";
-var THEME_SEL_REGION_OPACITY    = 0.5;
-var THEME_MESSAGE_TIMEOUT_MS    = 6000;
-var THEME_CONTROL_POINT_COLOR   = '#ff0000';
 
-var CSV_SEP        = ',';
-var CSV_QUOTE_CHAR = '"';
-var CSV_KEYVAL_SEP = ':';
-
-var img_metadata = {};   // data structure to store loaded images metadata
-var img_src      = {};   // image content {abs. path, url, base64 data, etc}
-var img_fileref  = {};   // reference to local images selected by using browser file selector
-var img_count    = 0;    // count of the loaded images
-var canvas_regions = []; // image regions spec. in canvas space
-var canvas_scale   = 1.0;// current scale of canvas image
-
-var image_id       = ''; // id={filename+length} of current image
-var image_index    = -1; // index
-
-var current_image_filename;
-var current_image;
-var current_image_width;
-var current_image_height;
-
-// a record of image statistics (e.g. width, height)
-var img_stat     = {};
-var is_all_img_stat_read_ongoing = false;
-var img_stat_current_img_index = false;
-
-// image canvas
-var display_area = document.getElementById('display_area');
-var img_panel    = document.getElementById('image_panel');
-var reg_canvas   = document.getElementById('region_canvas');
-var reg_ctx; // initialized in init()
-var canvas_width, canvas_height;
-
-// canvas zoom
-var canvas_zoom_level_index   = CANVAS_DEFAULT_ZOOM_LEVEL_INDEX; // 1.0
-var canvas_scale_without_zoom = 1.0;
-
-// state of the application
-var is_user_drawing_region  = false;
-var current_image_loaded    = false;
-var is_window_resized       = false;
-var is_user_resizing_region = false;
-var is_user_moving_region   = false;
-var is_user_drawing_polygon = false;
-var is_region_selected      = false;
-var is_all_region_selected  = false;
-var is_loaded_img_list_visible  = false;
-var is_attributes_panel_visible = false;
-var is_reg_attr_panel_visible   = false;
-var is_file_attr_panel_visible  = false;
-var is_canvas_zoomed            = false;
-var is_loading_current_image    = false;
-var is_region_id_visible        = true;
-var is_region_boundary_visible  = true;
-var is_region_info_visible      = false;
-var is_ctrl_pressed             = false;
-var is_debug_mode               = false;
-var is_message_visible          = true;
-
-// region
-var current_shape             = REGION_SHAPE.RECT;
-var current_polygon_region_id = -1;
-var user_sel_region_id        = -1;
-var click_x0 = 0; var click_y0 = 0;
-var click_x1 = 0; var click_y1 = 0;
-var region_click_x, region_click_y;
-var region_edge          = [-1, -1];
-var current_x = 0; var current_y = 0;
-
-// region copy/paste
-var region_selected_flag = []; // region select flag for current image
-var copied_image_regions = [];
-var paste_to_multiple_images_input;
-
-// message
-var message_clear_timer;
-
-// attributes
-var attribute_being_updated       = 'region'; // {region, file}
-var attributes                    = {'region':{
-                                              "Fixed":{"type":"radio","description":"","options":{"yes":"Yes","no":"No"},"default_options":{"no":true}},
-                                              "Persistence":{"type":"radio","description":"","options":{"yes":"Yes","no":"No"},"default_options":{"no":true}},
-                                              "Name":{"type":"text","description":"Name of artifact","default_value":"not_defined"},
-                                              "Type":{"type":"dropdown","description":"Category","options":{"category":"[need categories]"},"default_options":{"unknown":true}},
-                                              "Notes":{"type":"text","description":"Further comments","default_value":"not_defined"},
-                                              "Recorded_by":{"type":"text","description":"Add your initials","default_value":"not_defined"}},
-                                      'file':{
-                                              "Context_Number":{"type":"text","description":"","default_value":""},
-                                              "Square":{"type":"text","description":"","default_value":""},
-                                              "Module":{"type":"text","description":"","default_value":""},
-                                              "Orbital_Segment":{"type":"dropdown","description":"Orbital Segment","options":{"us":"USA","eur":"ESA","unknown":"Unknown"},"default_options":{"unknown":true}},
-                                              "Agency":{"type":"dropdown","description":"Agency","options":{"esa":"ESA","nasa":"NASA","unknown":"Unknown"},"default_options":{"unknown":true}},
-                                              "Context_Type":{"type":"text","description":"","default_value":""},
-                                              "Description":{"type":"text","description":"","default_value":""},
-                                              "Interpretation":{"type":"text","description":"","default_value":""},
-                                              "Problems":{"type":"text","description":"","default_value":""}} };
-var current_attribute_id          = '';
-
-// region group color
-var canvas_regions_group_color = {}; // color of each region
-
-// invoke a method after receiving user input
-var user_input_ok_handler     = null;
-var user_input_cancel_handler = null;
-var user_input_data           = {};
-
-// annotation editor
-var annotaion_editor_panel     = document.getElementById('container__bottom');
-var metadata_being_updated     = 'region'; // {region, file}
-var annotation_editor_mode     = ANNOTATION_EDITOR_MODE.SINGLE_REGION;
-
-// persistence to local storage
-var is_local_storage_available = false;
-var is_save_ongoing            = false;
-
-// all the image_id and image_filename of images added by the user is
-// stored in image_id_list and image_filename_list
-//
-// Image filename list (img_fn_list) contains a filtered list of images
-// currently accessible by the user. The img_fn_list is visible in the
-// left side toolbar. image_grid, next/prev, etc operations depend on
-// the contents of img_fn_list_img_index_list.
-var image_id_list                 = []; // array of all image id (in order they were added by user)
-var image_filename_list           = []; // array of all image filename
-var image_load_error              = []; // {true, false}
-var image_filepath_resolved       = []; // {true, false}
-var image_filepath_id_list        = []; // path for each file
-
-var reload_img_fn_list_table      = true;
-var img_fn_list_img_index_list    = []; // image index list of images show in img_fn_list
-var img_fn_list_html              = []; // html representation of image filename list
-
-// image grid
-var image_grid_panel                        = document.getElementById('image_grid_panel');
-var display_area_content_name          = ''; // describes what is currently shown in display area
-var display_area_content_name_prev     = '';
-var image_grid_requires_update         = false;
-var image_grid_content_overflow        = false;
-var image_grid_load_ongoing            = false;
-var image_grid_page_first_index        = 0; // array index in img_fn_list_img_index_list[]
-var image_grid_page_last_index         = -1;
-var image_grid_selected_img_index_list = [];
-var image_grid_page_img_index_list     = []; // list of all image index in current page of image grid
-var image_grid_visible_img_index_list  = []; // list of images currently visible in grid
-var image_grid_mousedown_img_index     = -1;
-var image_grid_mouseup_img_index       = -1;
-var image_grid_img_index_list          = []; // list of all image index in the image grid
-var image_grid_region_index_list       = []; // list of all image index in the image grid
-var image_grid_group                   = {}; // {'value':[image_index_list]}
-var image_grid_group_var               = []; // {type, name, value}
-var image_grid_group_show_all          = false;
-var image_grid_stack_prev_page         = []; // stack of first img index of every page navigated so far
-
-// image buffer
-var IMG_PRELOAD_INDICES         = [1, -1, 2, 3, -2, 4]; // for any image, preload previous 2 and next 4 images
 var IMG_PRELOAD_COUNT           = 4;
-var buffer_preload_img_index   = -1;
-var buffer_img_index_list      = [];
-var buffer_img_shown_timestamp = [];
-var preload_img_promise_list   = [];
 
 // settings
 var settings = {};
@@ -394,60 +204,19 @@ function file_region() {
 // Initialization routine
 //
 
-onMount(() => {
+onMount(async () => {
+  let data = {"email":"test"};
+
   console.log(NAME);
   init_leftsidebar_accordion();
   init_anno_accordion();
-
   curr_display("page_start_info");
-
-  
-  // show_message(NAME + ' (' + SHORT_NAME + ') version ' + VERSION +
-  //              '. Ready !', 2*THEME_MESSAGE_TIMEOUT_MS);
-
-  // if ( is_debug_mode ) {
-  //   document.getElementById('ui_top_panel').innerHTML += '<span>DEBUG MODE</span>';
-  // }
-
-  // document.getElementById('img_fn_list').style.display = 'block';
-  // document.getElementById('leftsidebar').style.display = 'table-cell';
-  // // document.getElementById('anno_toolbar').style.display = 'table-cell';
-
-
-  // annotation_editor_toggle_all_regions_editor()
-
-  // // initialize default project
-  // project_init_default_project();
-
-  // // initialize region canvas 2D context
-  // init_reg_canvas_context();
-
-  // // initialize user input handlers (for both window and reg_canvas)
-  // // handles drawing of regions by user over the image
-  // init_keyboard_handlers();
-  // init_mouse_handlers();
-
-  // // initialize image grid
-  // image_grid_init();
-
-  // show_single_image_view();
-  // init_leftsidebar_accordion();
-  // init_anno_accordion();
-  // attribute_update_panel_set_active_button();
-  // annotation_editor_set_active_button();
-  // init_message_panel();
-
-  // // run attached sub-modules (if any)
-  // // e.g. demo modules
-  // if (typeof load_submodules === 'function') {
-  //   console.log('Loading submodule');
-  //   setTimeout( async function() {
-  //     await load_submodules();
-  //   }, 100);
-  // }
 
 });
 
+$: if ($fileList === {}) {
+  curr_display("page_start_info")
+}
 
 $: if ($select_display) {
   console.log($select_display)
@@ -501,6 +270,243 @@ $: if (allFiles.length > 0) {
     accessFunc.create_struct();
 
 }
+
+let scrollToDiv;
+
+async function autoScroll() {
+  console.log("autoscroll")
+		await tick(); // Wait until DOM was updated
+		scrollToDiv.scrollTo({ top: scrollToDiv.scrollHeight, behavior: 'smooth' }); // Scroll to the bottom of the container
+	}
+
+$: if ($rowCheck) {
+    autoScroll();
+}
+
+$: console.log($ctxtStore)
+
+function jump_to_image(f) {
+  $select_display = "image_panel"
+  $jumpToImgPanel = true;
+  if ($selectedID !== $infoStore[f]["Context_Number"]) {
+    if ($selectedID === "") {
+      $selectedID = $infoStore[f]["Context_Number"];
+      if ($artiStore[$selectedID] === undefined) {
+        $artiStore[$selectedID] = []
+      }
+      if ($ctxtStore[$selectedID] === undefined) {
+        $ctxtStore[$selectedID] = []
+      }
+    } else {
+      document.getElementById($selectedID).style.borderLeft = "";
+      document.getElementById($selectedID).style.fontWeight = "";
+      $selectedID = $infoStore[f]["Context_Number"];
+      if ($artiStore[$selectedID] === undefined) {
+        $artiStore[$selectedID] = []
+      }
+      if ($ctxtStore[$selectedID] === undefined) {
+        $ctxtStore[$selectedID] = []
+      }
+    }
+  }
+
+  $setImg = f;
+}
+
+function download_as_csv() {
+  let ctxtCSV = "Filename|Context_Number|Provenance|Photographer|Square|Module|Orbital_Segment|Agency|Context_Type|Description|Interpretation|Problems\n"
+
+  for (let i = 0; i < Object.keys($ctxtStore).length; i++) {
+    let ctxtRef = Object.keys($ctxtStore)[i] 
+    let currRow = $ctxtStore[ctxtRef][0].file + "|" + ctxtRef + "|" + $ctxtStore[ctxtRef][1].provenance + "|" + Object.values($ctxtStore[ctxtRef][1].photographer) + "|" + $ctxtStore[ctxtRef][1].square + "|" + $ctxtStore[ctxtRef][1].module + "|" + Object.values($ctxtStore[ctxtRef][1].orbital_seg) + "|" + Object.values($ctxtStore[ctxtRef][1].agency) + "|" + $ctxtStore[ctxtRef][1].ctxt_type + "|" + $ctxtStore[ctxtRef][1].desc + "|" + $ctxtStore[ctxtRef][1].interp + "|" + $ctxtStore[ctxtRef][1].problems + "\n";
+    ctxtCSV += currRow
+  }
+  
+  let artiCSVs = [];
+  let ctxtForFilename = [];
+  
+  for (let i = 0; i < Object.keys($artiStore).length; i++) {
+    let ctxt = "Context_Number|Artifact_ID|Name|Type|Fixed|Persistence|Notes|Recorded_by|Date_Added\n"
+    let currCtxt = Object.keys($artiStore)[i]
+    ctxtForFilename.push(currCtxt)
+    for (let j = 0; j < $artiStore[currCtxt].length; j++) {
+      let row = currCtxt + "|" + $artiStore[currCtxt][j].arti_id + "|" + $artiStore[currCtxt][j].name + "|" + $artiStore[currCtxt][j].type + "|" + $artiStore[currCtxt][j].fixed + "|" + $artiStore[currCtxt][j].persistence + "|" + $artiStore[currCtxt][j].artiNotes + "|" + $artiStore[currCtxt][j].recorder + "|" + $artiStore[currCtxt][j].dateRecorded + "\n"
+      ctxt += row
+    }
+    artiCSVs.push(ctxt)
+  }
+
+  var zip = new JSZip();
+
+  zip.file("contexts.csv", ctxtCSV);
+
+  var artis = zip.folder("artifacts");
+  for (let i = 0; i < artiCSVs.length; i++) {
+    let fn = ctxtForFilename[i] + "_annotations"
+    artis.file(fn + ".csv",  artiCSVs[i]);
+  }
+
+  zip.generateAsync({type:"blob"}).then(function(content) {
+      saveAs(content, "ctxt.zip");
+  });
+
+}
+
+function download_as_coco() {
+  saveAs($fileList[$setImg], 'pic.jpg');  
+}
+
+function download_as_voc() {
+  let ctxtForFilename = [];
+  let totalImgs = [];
+
+  for (let i = 0; i < Object.keys($ctxtStore).length; i++) {
+    let ref = Object.keys($ctxtStore)[i]
+    ctxtForFilename.push($ctxtStore[ref][0].file)
+
+    let base = `<annotation>
+  <folder>ISS_images</folder>
+  <filename>${$ctxtStore[ref][0].file}</filename>
+  <path>${$fileList[$ctxtStore[ref][0].file]}</path>
+  <source>
+    <database>Unknown</database>
+  </source>
+  <size>
+    <width>${$exifData[$ctxtStore[ref][0].file]["Image Width"].value}</width>
+    <height>${$exifData[$ctxtStore[ref][0].file]["Image Height"].value}</height>
+    <depth>3</depth>
+  </size>
+  <segmented>0</segmented>`;
+    
+    if ($artiStore[ref] !== undefined) {
+      for (let j = 0; j < Object.keys($artiStore[ref]).length; j++) {
+        
+        let coords = Object.values($shpStore[ref])[j].target.selector.value
+        let obj;
+        if (Object.values($shpStore[ref])[j].target.selector.type === "FragmentSelector") {
+          coords = coords.replace(/[^0-9\.]+/g," ");
+          coords = coords.split(" ");
+          coords.shift()
+
+          let xmax = Number(coords[0]) + Number(coords[2])
+          let ymax = Number(coords[1]) + Number(coords[3])
+          coords[2] = xmax;
+          coords[3] = ymax;
+        
+        //poly: <svg><polygon points="1045.3,919 1482.7,897.1 1399.8,1146.1 1112.1,1246.5 1032.4,976.2 960.2,845.9"></polygon></svg>
+        } else {
+          let x = [];
+          let y = [];
+          coords = coords.replace(/[^0-9.,]/g," ");
+          coords = coords.split(" ");
+          coords = coords.filter(Boolean);
+
+          for (let n = 0; n < coords.length; n++) {
+            let sep = coords[n].split(",")
+            x.push(sep[0])
+            y.push(sep[1])
+
+          }    
+          coords = [Math.min(...x), Math.min(...y), Math.max(...x), Math.max(...y)]
+        }
+
+        obj = `
+  <object>
+    <name>${$artiStore[ref][j].arti_id}</name>
+    <pose>Unspecified</pose>
+    <truncated>0</truncated>
+    <difficult>0</difficult>
+    <bndbox>
+      <xmin>${coords[0]}</xmin>
+      <ymin>${coords[1]}</ymin>
+      <xmax>${coords[2]}</xmax>
+      <ymax>${coords[3]}</ymax>
+    </bndbox>
+  </object>`;  
+
+        base += obj;
+      }
+    }
+  
+    base += `
+</annotation>`;
+    totalImgs.push(base)
+  }
+
+  var zip = new JSZip();
+
+  var annotatedData = zip.folder("annotations");
+  for (let i = 0; i < totalImgs.length; i++) {
+    let fn = ctxtForFilename[i] + ".xml"
+    annotatedData.file(fn, totalImgs[i]);
+  }
+
+  var baseImgs = zip.folder("images");
+  for (let i = 0; i < totalImgs.length; i++) {
+    baseImgs.file(ctxtForFilename[i], $fileList[ctxtForFilename[i]]);
+  }
+
+  zip.generateAsync({type:"blob"}).then(function(content) {
+      saveAs(content, "pascal_voc.zip");
+  });             
+}
+
+function save_project() {
+  let fullSave = [];
+  for (let i = 0; i < Object.keys($ctxtStore).length; i++) {
+    let currInfo = {}
+    let ref = Object.keys($ctxtStore)[i]
+    currInfo[ref] = { 
+                      file: Object.values($ctxtStore)[i][0].file,
+                      provenance: Object.values($ctxtStore)[i][1].provenance, 
+                      photographer: Object.values($ctxtStore[ref][1].photographer)[0],
+                      type: Object.values($ctxtStore)[i][1].type,
+                      square: Object.values($ctxtStore)[i][1].square,
+                      module: Object.values($ctxtStore)[i][1].module,
+                      orbital_seg: Object.values($ctxtStore[ref][1].orbital_seg)[0],
+                      agency: Object.values($ctxtStore[ref][1].agency)[0],
+                      ctxt_type: Object.values($ctxtStore)[i][1].ctxt_type,
+                      desc: Object.values($ctxtStore)[i][1].desc,
+                      interp: Object.values($ctxtStore)[i][1].interp,
+                      problems: Object.values($ctxtStore)[i][1].problems,
+                      exifInfo: JSON.stringify($exifData[Object.values($ctxtStore)[i][0].file]),
+                      artifacts: [],
+                    }
+
+    for (let j = 0; j < Object.keys($artiStore[ref]).length; j++) {
+      currInfo[ref].artifacts.push({
+                                  arti_id: $artiStore[ref][j].arti_id, 
+                                  name: $artiStore[ref][j].name, 
+                                  type: $artiStore[ref][j].type,
+                                  fixed: $artiStore[ref][j].fixed,
+                                  persistence: $artiStore[ref][j].persistence,
+                                  artiNotes: $artiStore[ref][j].artiNotes,
+                                  recorder: $artiStore[ref][j].recorder,
+                                  dateRecorded: $artiStore[ref][j].dateRecorded,
+                                  shapeInfo: Object.values($shpStore[ref])[j]
+                                });      
+    }
+
+    currInfo[ref].artifacts = JSON.stringify(currInfo[ref].artifacts);
+    fullSave.push(currInfo);  
+  }
+
+  write_to_json(fullSave);
+
+}
+
+async function write_to_json(data) {
+  await fetch(`http://localhost:8081/`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+    headers:{
+      'Content-Type': 'application/json'
+    }
+  })
+  .then(res => res.json())
+  .then(res => console.log(res)); 
+}
+
 
 </script>
 
@@ -632,7 +638,7 @@ $: if (allFiles.length > 0) {
           <li>Project
             <ul>
               <li on:click={() => project_open_select_project_file()} title="Load project (from a JSON file)">Load</li>
-              <li on:click={() => project_save_with_confirm()} title="Save this project (as a JSON file)">Save</li>
+              <li on:click={() => save_project()} title="Save this project (as a JSON file)">Save</li>
               <li on:click={() => curr_display("settings_panel")} title="Show/edit project settings">Settings</li>
               <li class="submenu_divider"></li>
               <li on:click={() => {fileInput.click();}} title="Add images locally stored in this computer">Add local files</li>
@@ -640,35 +646,14 @@ $: if (allFiles.length > 0) {
               <!-- <li on:click={() => project_file_add_url_with_input()} title="Add images from a web URL (e.g. http://www.robots.ox.ac.uk/~vgg/software/via/images/swan.jpg)">Add files from URL</li>
               <li on:click={() => project_file_add_abs_path_with_input()} title="Add images using absolute path of file (e.g. /home/abhishek/image1.jpg)">Add file using absolute path</li>
               <li on:click={() => sel_local_data_file('files_url')} title="Add images from a list of web url or absolute path stored in a text file (one url or path per line)">Add url or path from text file</li> -->
-              <li class="submenu_divider"></li>
-              <li on:click={() => sel_local_data_file('attributes')} title="Import region and file attributes from a JSON file">Import region/file attributes</li>
-              <li on:click={() => project_save_attributes()} title="Export region and file attributes to a JSON file">Export region/file attributes</li>
             </ul>
           </li>
 
           <li>Annotation
             <ul>
-              <li on:click={() => download_all_region_data('csv')} title="Export annotations to a CSV file">Export Annotations (as csv)</li>
-              <li on:click={() => download_all_region_data('json')} title="Export annotaitons to a JSON file">Export Annotations (as json)</li>
-              <li on:click={() => download_all_region_data('coco', 'json')} title="Export annotaitons to COCO (http://cocodataset.org) format">Export Annotations (COCO format)</li>
-              <li class="submenu_divider"></li>
-              <li on:click={() => sel_local_data_file('annotations')} title="Import annotations from a CSV file">Import Annotations (from csv)</li>
-              <li on:click={() => sel_local_data_file('annotations')} title="Import annotations from a JSON file">Import Annotations (from json)</li>
-              <li on:click={() => sel_local_data_file('annotations_coco')} title="Import annotations from a COCO (http://cocodataset.org) formatted JSON file">Import Annotations (COCO format)</li>
-
-              <li class="submenu_divider"></li>
-              <li on:click={() => show_annotation_data()} title="Show a preview of annotations (opens in a new browser windows)">Preview Annotations</li>
-              <li on:click={() => download_as_image()} title="Download an image containing the annotations">Download as Image</li>
-            </ul>
-          </li>
-
-          <li>View
-            <ul>
-              <li on:click={() => toggle_message_visibility()} title="Show or hide status messages that appears at the bottom of the page">Toggle status message visibility</li>
-              <li class="submenu_divider"></li>
-              <li on:click={() => toggle_region_boundary_visibility()} title="Show or hide the region boundaries">Show/hide region boundaries (b)</li>
-              <li on:click={() => toggle_region_id_visibility()} title="Show or hide the region id labels">Show/hide region labels (l)</li>
-              <li on:click={() => toggle_region_info_visibility()} title="Show or hide the image coordinates">Show/hide region info.</li>
+              <li on:click={() => download_as_csv()} title="Export annotations to a CSV file">Export Annotations (as csv)</li>
+              <li on:click={() => download_as_coco()} title="Export annotations to COCO (http://cocodataset.org) format">Export Annotations (COCO format)</li>
+              <li on:click={() => download_as_voc()} title="Export annotations to Pascal VOC format">Export Annotations (Pascal VOC format)</li>
             </ul>
           </li>
 
@@ -682,17 +667,9 @@ $: if (allFiles.length > 0) {
       </div> <!-- end of menubar -->
 
       <!-- Shortcut toolbar -->
-      <div class="toolbar" id="centre_toolbar">
-        <svg on:click={() => move_to_prev_image()} viewbox="0 0 24 24"><use xlink:href="#icon_prev"></use><title>Previous</title></svg>
-        <svg on:click={() => image_grid_toggle()} id="toolbar_image_grid_toggle" viewbox="0 0 24 24"><use xlink:href="#icon_gridon"></use><title>Switch to Image Grid View</title></svg>
-        <svg on:click={() => move_to_next_image()} viewbox="0 0 24 24"><use xlink:href="#icon_next"></use><title>Next</title></svg>
-      </div>
-
       <div class="toolbar" id="right_toolbar">
-        <svg on:click={() => project_save_with_confirm()} viewbox="0 0 24 24"><use xlink:href="#icon_save"></use><title>Save Project</title></svg>
+        <Save20 on:click={() => save_project()}/>
       </div>
-      <!-- end of shortcut toolbar -->
-      <input type="file" id="invisible_file_input" name="files[]" style="display:none">
     </div> <!-- endof #top_panel -->
 
     <!-- Middle Panel contains a left-sidebar and image display areas -->
@@ -715,35 +692,18 @@ $: if (allFiles.length > 0) {
               <span class="tool">Group by&nbsp; <select id="image_grid_toolbar_group_by_select" onchange="image_grid_toolbar_onchange_group_by_select(this)"></select></span>
             </div>
 
-            <div id="image_grid_toolbar">
-              <span>Selected</span>
-              <span id="image_grid_group_by_sel_img_count">0</span>
-              <span>of</span>
-              <span id="image_grid_group_by_img_count">0</span>
-              <span>images in current group, show</span>
-
-              <span>
-                <select id="image_grid_show_image_policy" onchange="image_grid_onchange_show_image_policy(this)">
-                  <option value="all">all images (paginated)</option>
-                  <option value="first_mid_last">only first, middle and last image</option>
-                  <option value="even_indexed">even indexed images (i.e. 0,2,4,...)</option>
-                  <option value="odd_indexed">odd indexed images (i.e. 1,3,5,...)</option>
-                  <option value="gap5">images 1, 5, 10, 15,...</option>
-                  <option value="gap25">images 1, 25, 50, 75, ...</option>
-                  <option value="gap50">images 1, 50, 100, 150, ...</option>
-                </select>
-              </span>
-
-              <div id="image_grid_nav"></div>
+            <div class="img_grid">
+              {#each Object.keys($fileList) as ctxt}
+        
+                    <!-- svelte-ignore a11y-img-redundant-alt -->
+                    <img on:click={()=> jump_to_image(ctxt)} src={$fileList[ctxt]} alt="ISS photo">
+                
+              {:else}
+                <p>loading...</p>
+              {/each}
             </div>
 
-            <div id="image_grid_content">
-              <div id="image_grid_content_img"></div>
-              <svg xmlns:xlink="http://www.w3.org/2000/svg" id="image_grid_content_rshape"></svg>
-            </div>
-
-            <div id="image_grid_info">
-            </div>
+            
           </div> <!-- end of image grid panel -->
 
         {:else if $select_display === "settings_panel"}
@@ -777,7 +737,7 @@ $: if (allFiles.length > 0) {
               </div>
 
               <div class="value">
-                <select id="settings.ui.image.region_label"></select>
+                <select ></select>
               </div>
             </div>
 
@@ -788,7 +748,7 @@ $: if (allFiles.length > 0) {
               </div>
 
               <div class="value">
-                <select id="settings.ui.image.region_color"></select>
+                <select></select>
               </div>
             </div>
 
@@ -799,7 +759,7 @@ $: if (allFiles.length > 0) {
               </div>
 
               <div class="value">
-                <input id="settings.ui.image.region_label_font" placeholder="12px Arial"/>
+                <input placeholder="12px Arial"/>
               </div>
             </div>
 
@@ -820,7 +780,7 @@ $: if (allFiles.length > 0) {
               </div>
 
               <div class="value">
-                <select id="settings.ui.image.on_image_annotation_editor_placement">
+                <select>
                   <option value="NEAR_REGION">close to selected region</option>
                   <option value="IMAGE_BOTTOM">at the bottom of image being annotated</option>
                   <option value="DISABLE">DISABLE on-image annotation editor</option>
@@ -847,6 +807,7 @@ $: if (allFiles.length > 0) {
         {:else if $select_display === "page_start_info"}
           <div id="page_start_info" class="display_area_content narrow_page_content">
             <ul>
+              <li><b>BEFORE YOU BEGIN:</b> Ensure the images you want to upload are in the "public/iss_images/" folder.</li>
               <li>To start annotation, go to "Project" tab in the menu OR in the sidebar on the right of the screen to load in some image files. You can use the toolbar on the left to change the shape which you use to annotate, zoom in/out of the selected image, and modify the regions you're creating when annotating.</li>
               <li>For each annotation you create, use the annotation editor at the bottom of the screen to add information. To add more categorizations/options to any of the attributes, use "Modify Attributes" located in the sidebar on the right of the screen.</li>
               <li>Remember to <span class="text_button" on:click={() => project_save_with_confirm()}>save</span> your project before closing this application so that you can <span class="text_button" on:click={() => project_open_select_project_file()}>load</span> it later to continue annotation.</li>
@@ -902,7 +863,7 @@ $: if (allFiles.length > 0) {
       </div>
       <div class="resizer" data-direction="vertical"></div>
 
-      <div id="container__bottom">
+      <div bind:this="{scrollToDiv}" id="container__bottom">
         <Annotation_Editor/>
       </div>
     

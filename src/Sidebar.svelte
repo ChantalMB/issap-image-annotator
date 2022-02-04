@@ -1,7 +1,10 @@
 <script>
 
-import { ctxtStore, infoStore, projName, select_display, exifData, fileList, setImg, selectedID, changingPicture, artiStore } from './stores.js';
+import { jumpToImgPanel, ctxtStore, infoStore, projName, select_display, exifData, fileList, setImg, selectedID, changingPicture, artiStore, shpStore, rmImg, showImg } from './stores.js';
 import ExifReader from 'exifreader';
+import Grid20 from "carbon-icons-svelte/lib/Grid20";
+import Image20 from "carbon-icons-svelte/lib/Image20";
+
 
 let files = null; 
 let fileInput, image, template;
@@ -72,7 +75,6 @@ $: if (allTags.length > 0) {
     for (let i = 0; i < allFiles.length; i++) {
         $exifData[allFiles[i]] = allTags[i]
     }
-    //  create_struct();
     console.log($exifData)
     $select_display = "image_panel"
 }
@@ -81,18 +83,17 @@ let allTags = [];
 export const upload_images=(e)=> {
 		for (let i = 0; i < e.target.files.length; i++) {
 			image = e.target.files[i];
+      $fileList[image.name] = "/iss_images/" + image.name;
 
-      $fileList[image.name] = URL.createObjectURL(image);
+      allFiles = [...allFiles, image.name]
 
-					allFiles = [...allFiles, image.name]
-
-					let reader = new FileReader();
-					reader.readAsDataURL(image);
-					reader.onload = e => {
-						ExifReader.load(e.target.result).then(function (tags) {
-                            allTags = [...allTags, tags];
-						});
-					}
+      let reader = new FileReader();
+      reader.readAsDataURL(image);
+      reader.onload = e => {
+        ExifReader.load(e.target.result).then(function (tags) {
+                        allTags = [...allTags, tags];
+        });
+      }
 		}
 }
 
@@ -129,12 +130,87 @@ function jump_to_image(f) {
 }
 
 function remove_file() {
-    if (confirm("Are you sure you would like to remove file [TO-DO]?")) {
-        text = "You pressed OK!";
-    } else {
-        text = "You cancelled!";
+  let currPos = Object.keys($fileList).indexOf($setImg);
+
+  let byCtxt = $selectedID;
+  var result = Object.values($infoStore).find(obj => {
+            return obj.Context_Number === byCtxt
+        })
+  let byFile = Object.keys($infoStore)[Object.values($infoStore).indexOf(result)]
+
+  if (confirm("Are you sure you would like to remove file " + $ctxtStore[$selectedID][0].file + "?")) {
+    $rmImg = true;
+    const indexCtxt = Object.keys($ctxtStore).indexOf($selectedID);
+    if (indexCtxt > -1) {
+      let oc = Object.keys($ctxtStore)[indexCtxt]
+      let oa = Object.keys($artiStore)[indexCtxt]
+      let os = Object.keys($shpStore)[indexCtxt]
+      delete $ctxtStore[oc];
+      delete $artiStore[oa];
+      delete $shpStore[os];
+
+
+      $ctxtStore = $ctxtStore;
+      $artiStore = $artiStore;
+      $shpStore = $shpStore;
+    }    
+
+    const indexInfo = Object.keys($infoStore).indexOf(byFile);
+    if (indexInfo > -1) {
+      let oi = Object.keys($infoStore)[indexInfo]
+      let oe = Object.keys($exifData)[indexInfo]
+      let of = Object.keys($fileList)[indexInfo]
+
+
+      delete $infoStore[oi];
+      delete $exifData[oe];
+      delete $fileList[of];
+
+
+      $infoStore = $infoStore;
+      $exifData = $exifData;
+      $fileList = $fileList;
     }
+
+    console.log(Object.keys($fileList).length > 0)
+    if (currPos >= 0 && Object.keys($fileList).length > 0) {
+      if (currPos > 0) {
+        currPos -= 1;
+      }
+      console.log("pos op1")
+      $setImg = Object.keys($fileList)[currPos];
+      $changingPicture = true;
+      $selectedID = Object.keys($ctxtStore)[currPos]
+
+    } else {
+      // TO DO: NOT SURE HOW WELL THIS WILL WORK WITH PERSISTANT STORAGE
+      // IF I WANT STORE VARIABLES TO PERSIST THEN RELOAD WILL DO NOTHING
+      window.location.reload()
+
+    }
+    
+    console.log($infoStore)
+    console.log($ctxtStore)
+    console.log($artiStore)
+    console.log($shpStore)
+    console.log($exifData)
+    console.log($fileList)
+
+
+
+
+  } else {
+      text = "You cancelled!";
+  }
 }
+
+function return_to_img_panel(f) {
+  if ($select_display !== "image_panel") {
+    $select_display = "image_panel"
+    $jumpToImgPanel = true;
+  }
+}
+
 
 </script>
 
@@ -153,11 +229,10 @@ function remove_file() {
         <div class="button_panel" style="margin:0.1rem 0;" >
           <select style="width:48%" id="infoStore_preset_filters_list" onchange="img_fn_list_onpresetfilter_select()" title="Filter file list using predefined filters">
             <option value="all">All files</option>
-            <option value="files_without_region">Show files without regions</option>
-            <option value="files_missing_region_annotations">Show files missing region annotations</option>
-            <option value="files_missing_file_annotations">Show files missing file annotations</option>
-            <option value="files_error_loading">Files that could not be loaded</option>
+            <option value="files_missing_file_annotations">Show files missing annotations</option>
           </select>
+          <div on:click={() => ($select_display = "image_grid_panel")} style="font-size: 2em;" id="img_toggle"><Grid20 /><title>Switch to Image Grid View</title></div>
+          <div on:click={() => return_to_img_panel($selectedID)} style="font-size: 2em;" id="img_toggle"><Image20 /><title>Switch to Image Grid View</title></div>
         </div>
       </div>
       <div id="img_fn_list">
@@ -173,22 +248,6 @@ function remove_file() {
             <input bind:files style="display:none" type="file" accept="image/*" multiple on:change={(e)=>upload_images(e)} bind:this={fileInput} >
           <span class="button" on:click={() => remove_file()} title="Remove selected file (i.e. file currently being shown) from project">Remove</span>
         </div>
-    </div>
-
-    <!-- Attributes -->
-    <button class="leftsidebar_accordion">Modify Attributes</button>
-    <div class="leftsidebar_accordion_panel" id="attributes_editor_panel">
-      <div class="button_panel" style="padding:1rem 0;">
-        <span class="text_button" on:click={() => show_region_attributes_update_panel()} id="button_show_region_attributes" title="Show region attributes">Artifact Attributes</span>
-        <span class="text_button" on:click={() => show_file_attributes_update_panel()} id="button_show_file_attributes" title="Show file attributes">Context Attributes</span>
-      </div>
-      <div id="attributes_update_panel">
-        <div class="button_panel" style="margin:0.1rem 0;" >
-          <select style="width:100%" id="attributes_name_list" onchange="update_current_attribute_id(this)" title="List of existing attributes"></select>
-        </div>
-        <div id="attribute_properties"></div>
-        <div id="attribute_options"></div>
-      </div>
     </div>
 
     <button class="leftsidebar_accordion">Keyboard Shortcuts</button>

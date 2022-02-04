@@ -10,6 +10,7 @@
   "devDependencies": {
     "@rollup/plugin-commonjs": "^17.0.0",
     "@rollup/plugin-node-resolve": "^11.0.0",
+    "carbon-icons-svelte": "^10.44.4",
     "rollup": "^2.3.4",
     "rollup-plugin-css-only": "^3.1.0",
     "rollup-plugin-livereload": "^2.0.0",
@@ -19,10 +20,16 @@
   },
   "dependencies": {
     "@fortawesome/free-solid-svg-icons": "^5.15.4",
+    "@recogito/annotorious-openseadragon": "^2.7.1",
+    "@recogito/annotorious-selector-pack": "^0.5.0",
+    "@recogito/annotorious-shape-labels": "^0.2.1",
     "canvas": "^2.8.0",
     "exifreader": "^4.1.1",
     "fabric": "^4.6.0",
-    "sirv-cli": "^2.0.0",
-    "svelte-fa": "^2.4.0"
+    "file-saver": "^2.0.5",
+    "fs-extra": "^10.0.0",
+    "jszip": "^3.7.1",
+    "openseadragon": "^3.0.0",
+    "sirv-cli": "^2.0.0"
   }
 }

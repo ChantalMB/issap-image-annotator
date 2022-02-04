@@ -1,7 +1,14 @@
 <script>
-    import { selectedShape, fileList, setImg, changingPicture } from './stores.js';
-    import Fa from 'svelte-fa';
-    import { faArrowLeft, faArrowRight } from '@fortawesome/free-solid-svg-icons'
+    import { selectedShape, fileList, setImg, changingPicture, zoomIn, zoomOut, centreImg } from './stores.js';
+    import Edit24 from "carbon-icons-svelte/lib/Edit24";
+    import VirtualPrivateCloudAlt20 from "carbon-icons-svelte/lib/VirtualPrivateCloudAlt20";
+    import AreaCustom20 from "carbon-icons-svelte/lib/AreaCustom20";
+    import ArrowLeft24 from "carbon-icons-svelte/lib/ArrowLeft24";
+    import ArrowRight24 from "carbon-icons-svelte/lib/ArrowRight24";
+    import CenterSquare24 from "carbon-icons-svelte/lib/CenterSquare24";
+    import ZoomInArea24 from "carbon-icons-svelte/lib/ZoomInArea24";
+    import ZoomOutArea24 from "carbon-icons-svelte/lib/ZoomOutArea24";
+
 
 
     let panel = "anno_accordion_panel";
@@ -28,26 +35,32 @@
         }
     }
 
-$: if ($fileList.length > 5) {
-    console.log($fileList[7])
+function zoom_in() {
+    console.log("zoom in")
+}
+
+function zoom_out() {
+    console.log("zoom out")
+
+    
 }
 
 </script>
 
 <div id="anno_toolbar">
-    <button class="anno_accordion" id="anno_toolbar_style"><svg viewbox="0 0 24 24" ><use xlink:href="#icon_edit"></use><title>Select annotation shape</title></svg></button>
+    <button class="anno_accordion" id="anno_toolbar_style"><Edit24 /><title>Select annotation shape</title></button>
       <div class="anno_accordion_panel">
         <ul class="region_shape">
-          <li id="region_shape_rect" on:click={() => select_region_shape('rect')} title="Rectangle (Shortcut key 1)"><svg height="35" viewbox="0 0 35 35"><use xlink:href="#shape_rectangle"></use></svg></li>
-          <li id="region_shape_polygon" on:click={() => select_region_shape('polygon')} title="Polygon (Shortcut key 4)"><svg height="35" viewbox="0 0 35 35"><use xlink:href="#shape_polygon"></use></svg></li>
-          <li id="region_shape_point" on:click={() => select_region_shape('point')} title="Point (Shortcut key 5)"><svg height="35" viewbox="0 0 35 35"><use xlink:href="#shape_point"></use></svg></li>
+          <li id="region_shape_rect" on:click={() => select_region_shape('rect')} title="Rectangle (Shortcut key 1)"><VirtualPrivateCloudAlt20 /></li>
+          <li id="region_shape_polygon" on:click={() => select_region_shape('polygon')} title="Polygon (Shortcut key 4)"><AreaCustom20 /></li>
         </ul>
         <div id="region_info" class="display_none">&nbsp;</div>
       </div>
 
-    <button id="anno_toolbar_style"><svg height="95%" width="95%" on:click={() => zoom_in()} viewbox="0 0 24 24"><use xlink:href="#icon_zoomin"></use><title>Zoom In</title></svg></button>
-    <button id="anno_toolbar_style"><svg height="95%" width="95%" on:click={() => zoom_out()} viewbox="0 0 24 24"><use xlink:href="#icon_zoomout"></use><title>Zoom In</title></svg></button>
-    <button id="anno_toolbar_style" on:click={() => get_image("prev")}><Fa icon={faArrowLeft}/></button>
-    <button id="anno_toolbar_style" on:click={() => get_image("next")}><Fa icon={faArrowRight}/></button>
+    <button id="anno_toolbar_style" bind:this={$zoomIn}><ZoomInArea24 /><title>Zoom In</title></button>
+    <button id="anno_toolbar_style" bind:this={$zoomOut}><ZoomOutArea24 /><title>Zoom In</title></button>
+    <button id="anno_toolbar_style" bind:this={$centreImg}><CenterSquare24 /><title>Centre Image</title></button>
+    <button id="anno_toolbar_style" on:click={() => get_image("prev")}><ArrowLeft24 /></button>
+    <button id="anno_toolbar_style" on:click={() => get_image("next")}><ArrowRight24 /></button>
 
 </div>

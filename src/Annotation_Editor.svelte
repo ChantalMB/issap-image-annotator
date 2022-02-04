@@ -1,22 +1,32 @@
 <script>
-import { showImg, shpStore, selectedID, artiStore, ctxtStore, currentTable, exifData, ctxtInfo } from './stores.js';
+import { showImg, shpStore, selectedID, artiStore, ctxtStore, exifData, ctxtInfo, rowCheck, typeCategory } from './stores.js';
+
 
 let view;
 let provenance;
+
+
+$: if ($ctxtInfo !== undefined){
+    provenance = $exifData[$ctxtInfo[0].file]['DateCreated']['description'];
+    }
+
 let os = [{"us":"USA"},{"eur":"ESA"},{"unknown":"Unknown"}]
 let ag = [{"esa":"ESA"},{"nasa":"NASA"},{"unknown":"Unknown"}]
+let phg = [{"unknown":"Unknown"}, {"kb":"Kayla Barron"}, {"rj":"Raja Chari"}, {"tm":"Thomas Marshburn"}, {"mm":"Matthias Maurer"}, {"mvh": "Mark Vande Hei"}]
 
+let currentTable = [];
 let artiHeaders = ["Artifact_ID", "Name", "Type", "Fixed", "Persistence", "Notes", "Recorded_by", "Date_Added"]
-let ctxtHeaders = ["Context_Number", "Provenance", "Square", "Module", "Orbital_Segment", "Agency", "Context_Type", "Description", "Interpretation", "Problems"]
+let ctxtHeaders = ["Context_Number", "Provenance", "Photographer", "Square", "Module", "Orbital_Segment", "Agency", "Context_Type", "Description", "Interpretation", "Problems"]
 var currentdate = new Date(); 
-var dateRecorded = currentdate.getFullYear()  + ":" 
-                + (currentdate.getMonth()+1) + ':'
+var dateRecorded = currentdate.getFullYear()  + "-" 
+                + (currentdate.getMonth()+1) + '-'
                 + currentdate.getDate() + " "  
                 + currentdate.getHours() + ":"  
                 + currentdate.getMinutes() + ":" 
                 + currentdate.getSeconds();
 
-$: $currentTable = $artiStore[$selectedID];
+// CURRENT TABLE IS SETTING TO UNDEFINED
+$: currentTable = $artiStore[$selectedID];
 $: $ctxtInfo = $ctxtStore[$selectedID];
 
 $: if ($showImg) {
@@ -32,41 +42,55 @@ const addTable = () => (artiStore.update(s => {
 
 $: if ($shpStore) {
     if (Object.keys($shpStore).length !== 0) {
+        if ($rowCheck){
             addArtiRow()
+            $rowCheck = false;
+        }
     }
 }
 
-const addArtiRow = () => ($currentTable.push({ 
-                        arti_id: $shpStore[$selectedID].objects[$shpStore[$selectedID].objects.length - 1].label , 
+const addArtiRow = () => (currentTable.push({ 
+                        arti_id: $shpStore[$selectedID][$shpStore[$selectedID].length - 1].body[0].value, 
                         name: 'Unnamed', 
-                        type: 0,
+                        type: '',
                         fixed: 'y',
                         persistence: 'y',
                         artiNotes: '',
                         recorder: 'Initials',
                         dateRecorded: dateRecorded,
-                     }), $artiStore[$selectedID] = $currentTable)
+                     }), $artiStore[$selectedID] = currentTable)
+
+
 
 
 $: if ($selectedID){
-    addCtxtRow();
+    if ($ctxtStore[$selectedID].length < 2) {
+        addCtxtRow();
+    }
 }
-
 
 const addCtxtRow = () => ($ctxtInfo.push({
                         provenance: provenance, 
+                        photographer: {"unknown":"Unknown"},
                         type: 0,
                         square: '',
                         module: '',
                         orbital_seg: {"unknown":"Unknown"},
                         agency: {"unknown":"Unknown"},
                         ctxt_type: '',
-                        description: '',
+                        desc: '',
                         interp: '',
                         problems: '',
                      }), $ctxtStore[$selectedID] = $ctxtInfo)
 
-$: console.log($ctxtStore)
+function updateCategory(val) {
+    if ($typeCategory.indexOf(val) === -1) {
+        $typeCategory.push(val)
+        $typeCategory = $typeCategory;
+    }
+}
+
+
 </script>
 
 <div class="button_panel">
@@ -90,12 +114,17 @@ $: console.log($ctxtStore)
             <span class="col">
                 {$selectedID}
             </span>
-            <span bind:this={provenance} class="col">
-                {#if $exifData[$ctxtInfo[0].file]['DateTimeOriginal'] !== undefined }
-                    {$exifData[$ctxtInfo[0].file]['DateTimeOriginal']['description']}
-                {:else}
-                    Unspecified
-                {/if}
+            <span class="col">
+                {provenance}
+            </span>
+            <span class="col">
+                <select bind:value={$ctxtStore[$selectedID][1].photographer}>
+                    {#each phg as p}
+                        <option value={p}>
+                            {Object.values(p)}
+                        </option>
+                    {/each}
+                </select>
             </span>
             <span class="col">
                 <textarea bind:value={$ctxtStore[$selectedID][1].square}></textarea>
@@ -137,14 +166,14 @@ $: console.log($ctxtStore)
         {/if}
 
     {:else}
+        <!-- TO DO: FIX THE DATALISTS-->
         <div class="row" id="annotation_editor_header">
             {#each artiHeaders as i}
                 <span class="col header">{i}</span>
             {/each}
         </div>
         {#if $artiStore[$selectedID] !== undefined}
-
-            {#each $currentTable as item, i}
+            {#each currentTable as item, i}
                 <div class="row" id={i}>
                     <span class="col">
                         {$artiStore[$selectedID][i].arti_id}
@@ -153,27 +182,32 @@ $: console.log($ctxtStore)
                         <textarea bind:value={$artiStore[$selectedID][i].name}></textarea>
                     </span>
                     <span class="col">
-                        <textarea bind:value={$artiStore[$selectedID][i].type}></textarea>
+                        <input list="ice-cream-flavors" id="ice-cream-choice" name="ice-cream-choice" on:change={()=> updateCategory($artiStore[$selectedID][i].type)} bind:value={$artiStore[$selectedID][i].type} />
+                            <datalist id="ice-cream-flavors">
+                                {#each $typeCategory as c}
+                                    <option value={c}>
+                                {/each}
+                            </datalist>
                     </span>
                     <span class="col">
                         <label>
-                            <input type=radio bind:group={$artiStore[$selectedID][i].fixed} name="fixed" value={"yes"}>
+                            <input type=radio bind:group={$artiStore[$selectedID][i].fixed} name="fixed1" value={"yes"}>
                             Yes
                         </label>
                 
                         <label>
-                            <input type=radio bind:group={$artiStore[$selectedID][i].fixed} name="fixed" value={"no"}>
+                            <input type=radio bind:group={$artiStore[$selectedID][i].fixed} name="fixed2" value={"no"}>
                             No
                         </label>
                     </span>
                     <span class="col">
                         <label>
-                            <input type=radio bind:group={$artiStore[$selectedID][i].persistence} name="per" value={"yes"}>
+                            <input type=radio bind:group={$artiStore[$selectedID][i].persistence} name="per1" value={"yes"}>
                             Yes
                         </label>
                 
                         <label>
-                            <input type=radio bind:group={$artiStore[$selectedID][i].persistence} name="per" value={"no"}>
+                            <input type=radio bind:group={$artiStore[$selectedID][i].persistence} name="per2" value={"no"}>
                             No
                         </label>
                     </span>
@@ -181,13 +215,11 @@ $: console.log($ctxtStore)
                         <textarea bind:value={$artiStore[$selectedID][i].artiNotes}></textarea>
                     </span>
                     <span class="col">
-                        <input value={$artiStore[$selectedID][i].recorder}>
+                        <input value={$artiStore[$selectedID][i].recorder} autocomplete="on">
                     </span>
                     <span class="col">
                         {$artiStore[$selectedID][i].dateRecorded}
                     </span>
-
-                    <!-- <Artifact_Rows i={i} /> -->
                 </div>
             {/each}
             {/if}
