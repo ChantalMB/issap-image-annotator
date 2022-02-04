@@ -495,8 +495,9 @@ function save_project() {
 
 }
 
+
 async function write_to_json(data) {
-  await fetch(`http://localhost:8081/`, {
+  await fetch(`/`, {
     method: 'POST',
     body: JSON.stringify(data),
     headers:{
@@ -808,7 +809,7 @@ async function write_to_json(data) {
           <div id="page_start_info" class="display_area_content narrow_page_content">
             <ul>
               <li><b>BEFORE YOU BEGIN:</b> Ensure the images you want to upload are in the "public/iss_images/" folder.</li>
-              <li>To start annotation, go to "Project" tab in the menu OR in the sidebar on the right of the screen to load in some image files. You can use the toolbar on the left to change the shape which you use to annotate, zoom in/out of the selected image, and modify the regions you're creating when annotating.</li>
+              <li>To start annotation, go to "Project" tab in the menu OR in the sidebar on the right of the screen to load in some image files. Hold down the SHIFT key + click and drag to draw an annotation (NOTE: When drawing polygons, double click to close the shape). You can use the toolbar on the left to change the shape which you use to annotate, zoom in/out of the selected image, and modify the regions you're creating when annotating.</li>
               <li>For each annotation you create, use the annotation editor at the bottom of the screen to add information. To add more categorizations/options to any of the attributes, use "Modify Attributes" located in the sidebar on the right of the screen.</li>
               <li>Remember to <span class="text_button" on:click={() => project_save_with_confirm()}>save</span> your project before closing this application so that you can <span class="text_button" on:click={() => project_open_select_project_file()}>load</span> it later to continue annotation.</li>
             </ul>
