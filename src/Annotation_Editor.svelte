@@ -6,17 +6,22 @@ let view;
 let provenance;
 
 
-$: if ($ctxtInfo !== undefined){
-    provenance = $exifData[$ctxtInfo[0].file]['DateCreated']['description'];
+$: if ($ctxtInfo !== undefined) {
+    if ($exifData[$ctxtInfo[0].file]['DateCreated'] !== undefined) {
+        provenance = $exifData[$ctxtInfo[0].file]['DateCreated']['description'];
+    } else {
+        provenance = "Unspecified";
     }
 
-let os = [{"us":"USA"},{"eur":"ESA"},{"unknown":"Unknown"}]
-let ag = [{"esa":"ESA"},{"nasa":"NASA"},{"unknown":"Unknown"}]
-let phg = [{"unknown":"Unknown"}, {"kb":"Kayla Barron"}, {"rj":"Raja Chari"}, {"tm":"Thomas Marshburn"}, {"mm":"Matthias Maurer"}, {"mvh": "Mark Vande Hei"}]
+}
+
+let os = [{"us":"USA"},{"eur":"ESA"},{"unknown":"Unknown"}];
+let ag = [{"esa":"ESA"},{"nasa":"NASA"},{"unknown":"Unknown"}];
+let phg = [{"unknown":"Unknown"}, {"kb":"Kayla Barron"}, {"rj":"Raja Chari"}, {"tm":"Thomas Marshburn"}, {"mm":"Matthias Maurer"}, {"mvh": "Mark Vande Hei"}];
 
 let currentTable = [];
-let artiHeaders = ["Artifact_ID", "Name", "Type", "Fixed", "Persistence", "Notes", "Recorded_by", "Date_Added"]
-let ctxtHeaders = ["Context_Number", "Provenance", "Photographer", "Square", "Module", "Orbital_Segment", "Agency", "Context_Type", "Description", "Interpretation", "Problems"]
+let artiHeaders = ["Artifact_ID", "Name", "Type", "Fixed", "Persistence", "Notes", "Recorded_by", "Date_Added"];
+let ctxtHeaders = ["Context_Number", "Provenance", "Photographer", "Square", "Module", "Orbital_Segment", "Agency", "Context_Type", "Description", "Interpretation", "Problems"];
 var currentdate = new Date(); 
 var dateRecorded = currentdate.getFullYear()  + "-" 
                 + (currentdate.getMonth()+1) + '-'
@@ -25,7 +30,7 @@ var dateRecorded = currentdate.getFullYear()  + "-"
                 + currentdate.getMinutes() + ":" 
                 + currentdate.getSeconds();
 
-// CURRENT TABLE IS SETTING TO UNDEFINED
+                
 $: currentTable = $artiStore[$selectedID];
 $: $ctxtInfo = $ctxtStore[$selectedID];
 
@@ -97,8 +102,8 @@ function updateCategory(val) {
     <span class="text_button" on:click={() => view=''} id="button_edit_region_metadata" title="Manual annotations of regions">Artifact Annotations</span>
     <span class="text_button" on:click={() => view='context'} id="button_edit_file_metadata" title="Manual annotations of a file">Context Annotations</span>
 
-    <span class="button" style="float:right;margin-right:0.2rem;" on:click={() => annotation_editor_increase_content_size()} title="Increase size of contents in annotation editor">&plus;</span>
-    <span class="button" style="float:right;margin-right:0.2rem;" on:click={() => annotation_editor_decrease_content_size()} title="Decrease size of contents in annotation editor">&minus;</span>
+    <!-- <span class="button" style="float:right;margin-right:0.2rem;" on:click={() => annotation_editor_increase_content_size()} title="Increase size of contents in annotation editor">&plus;</span>
+    <span class="button" style="float:right;margin-right:0.2rem;" on:click={() => annotation_editor_decrease_content_size()} title="Decrease size of contents in annotation editor">&minus;</span> -->
 </div>
 
 <div id ="annotation_editor">
@@ -182,8 +187,8 @@ function updateCategory(val) {
                         <textarea bind:value={$artiStore[$selectedID][i].name}></textarea>
                     </span>
                     <span class="col">
-                        <input list="ice-cream-flavors" id="ice-cream-choice" name="ice-cream-choice" on:change={()=> updateCategory($artiStore[$selectedID][i].type)} bind:value={$artiStore[$selectedID][i].type} />
-                            <datalist id="ice-cream-flavors">
+                        <input list="typeCate" id="typeCate" name="typeCate" on:change={()=> updateCategory($artiStore[$selectedID][i].type)} bind:value={$artiStore[$selectedID][i].type} />
+                            <datalist id="typeCate">
                                 {#each $typeCategory as c}
                                     <option value={c}>
                                 {/each}

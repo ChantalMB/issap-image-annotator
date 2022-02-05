@@ -10,9 +10,6 @@
     import ZoomOutArea24 from "carbon-icons-svelte/lib/ZoomOutArea24";
 
 
-
-    let panel = "anno_accordion_panel";
-
     function select_region_shape(s) {
        $selectedShape = s;
     }
@@ -35,24 +32,14 @@
         }
     }
 
-function zoom_in() {
-    console.log("zoom in")
-}
-
-function zoom_out() {
-    console.log("zoom out")
-
-    
-}
-
 </script>
 
 <div id="anno_toolbar">
     <button class="anno_accordion" id="anno_toolbar_style"><Edit24 /><title>Select annotation shape</title></button>
       <div class="anno_accordion_panel">
         <ul class="region_shape">
-          <li id="region_shape_rect" on:click={() => select_region_shape('rect')} title="Rectangle (Shortcut key 1)"><VirtualPrivateCloudAlt20 /></li>
-          <li id="region_shape_polygon" on:click={() => select_region_shape('polygon')} title="Polygon (Shortcut key 4)"><AreaCustom20 /></li>
+          <li id="region_shape_rect" on:click={() => select_region_shape('rect')} title="Draw rectangle"><VirtualPrivateCloudAlt20 /></li>
+          <li id="region_shape_polygon" on:click={() => select_region_shape('polygon')} title="Draw polygon"><AreaCustom20 /></li>
         </ul>
         <div id="region_info" class="display_none">&nbsp;</div>
       </div>

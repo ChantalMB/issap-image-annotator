@@ -252,7 +252,7 @@ function return_to_img_panel(f) {
 
     <button class="leftsidebar_accordion">Keyboard Shortcuts</button>
     <div class="leftsidebar_accordion_panel">
-      <div style="display:block; text-align:center; padding:1rem;">Available only on image focus</div>
+      <div style="display:block; text-align:center; padding:1rem;">TODO: THESE ARE NOT RELEVANT YET</div>
       <table>
         <tr>
           <td style="width:8em;"><span class="key">&larr;</span>&nbsp;<span class="key">&uarr;</span>&nbsp;<span class="key">&rarr;</span>&nbsp;<span class="key">&darr;</span></td>
