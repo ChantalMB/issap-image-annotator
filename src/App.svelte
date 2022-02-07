@@ -214,13 +214,43 @@ function download_as_csv() {
   let ctxtForFilename = [];
   
   for (let i = 0; i < Object.keys($infoStore).length; i++) {
-    let ctxt = "Context_Number|Artifact_ID|Name|Type|Fixed|Persistence|Notes|Recorded_by|Date_Added\n"
+    let ctxt = "Context_Number|Artifact_ID|xmin|ymin|xmax|ymax|Name|Type|Fixed|Persistence|Notes|Recorded_by|Date_Added\n"
     let ctxtRef = Object.keys($infoStore)[i]
     ctxtForFilename.push(ctxtRef)
     console.log(ctxtRef)
     for (let j = 0; j < $infoStore[ctxtRef][0].artifacts.length; j++) {
+      let coords = Object.values($shpStore[ctxtRef])[j].target.selector.value
+
+      let obj;
+      if (Object.values($shpStore[ctxtRef])[j].target.selector.type === "FragmentSelector") {
+        coords = coords.replace(/[^0-9\.]+/g," ");
+        coords = coords.split(" ");
+        coords.shift()
+
+        let xmax = Number(coords[0]) + Number(coords[2])
+        let ymax = Number(coords[1]) + Number(coords[3])
+        coords[2] = xmax;
+        coords[3] = ymax;
+      
+      } else {
+        let x = [];
+        let y = [];
+        coords = coords.replace(/[^0-9.,]/g," ");
+        coords = coords.split(" ");
+        coords = coords.filter(Boolean);
+
+        for (let n = 0; n < coords.length; n++) {
+          let sep = coords[n].split(",")
+          x.push(sep[0])
+          y.push(sep[1])
+
+        }    
+        coords = [Math.min(...x), Math.min(...y), Math.max(...x), Math.max(...y)]
+      }
+
       console.log($infoStore[ctxtRef][0].artifacts[j])
-      let row = ctxtRef + "|" + $infoStore[ctxtRef][0].artifacts[j].arti_id + "|" + $infoStore[ctxtRef][0].artifacts[j].name + "|" + $infoStore[ctxtRef][0].artifacts[j].type + "|" + $infoStore[ctxtRef][0].artifacts[j].fixed + "|" + $infoStore[ctxtRef][0].artifacts[j].persistence + "|" + $infoStore[ctxtRef][0].artifacts[j].artiNotes + "|" + $infoStore[ctxtRef][0].artifacts[j].recorder + "|" + $infoStore[ctxtRef][0].artifacts[j].dateRecorded + "\n"
+      
+      let row = ctxtRef + "|" + $infoStore[ctxtRef][0].artifacts[j].arti_id + "|" + coords[0] + "|" + coords[1] + "|" + coords[2] + "|" + coords[3] + "|" + $infoStore[ctxtRef][0].artifacts[j].name + "|" + $infoStore[ctxtRef][0].artifacts[j].type + "|" + $infoStore[ctxtRef][0].artifacts[j].fixed + "|" + $infoStore[ctxtRef][0].artifacts[j].persistence + "|" + $infoStore[ctxtRef][0].artifacts[j].artiNotes + "|" + $infoStore[ctxtRef][0].artifacts[j].recorder + "|" + $infoStore[ctxtRef][0].artifacts[j].dateRecorded + "\n"
       ctxt += row
     }
     artiCSVs.push(ctxt)
