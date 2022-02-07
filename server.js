@@ -13,15 +13,9 @@ app.use(bodyParser.json());
 app.post("/", function (req, res) {
     let info = req.body;
 
-    info = info[0][Object.keys(info[0])[0]].exifInfo
-    info = info.replace(/\\/g, "")
-
-   //  for (let i = 0; i < info.length; i++) {
-   //     let temp = info[i][Object.keys(info[i])[0]].exifInfo
-   //     info[i][Object.keys(info[i])[0]].exifInfo =  temp.replace(/\\/g, "");
-
-   //    //  info[i].artifacts = JSON.parse(info[i].artifacts)
-   //  }
+    for (let i = 0; i < Object.keys(info).length; i++) {
+       info[Object.keys(info)[i]][0].artifacts = JSON.parse(info[Object.keys(info)[i]][0].artifacts)
+    }
 
     fs.writeJson('./public/thing.json', info, err => {
         if (err) return console.error(err)

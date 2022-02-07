@@ -2,6 +2,8 @@ import { writable } from 'svelte/store';
 
 export const infoStore = writable({});
 
+export const pointlessStore = writable({});
+
 export const fileList = writable({});
 
 export const selectedID = writable("");
@@ -15,7 +17,7 @@ export const exifData = writable({});
 
 export const projName = writable("");
 
-export const select_display = writable("");
+export const selectDisplay = writable("");
 
 export const selectedShape = writable("");
 
@@ -26,6 +28,7 @@ export const artiStore = writable({});
 export const ctxtStore = writable({});
 
 export const ctxtInfo = writable([]);
+export const ctxtInfoSp = writable([]);
 
 export const zoomIn = writable();
 export const zoomOut = writable();

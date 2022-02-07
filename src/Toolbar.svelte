@@ -1,5 +1,5 @@
 <script>
-    import { selectedShape, fileList, setImg, changingPicture, zoomIn, zoomOut, centreImg } from './stores.js';
+    import { selectedShape, fileList, setImg, changingPicture, zoomIn, zoomOut, centreImg, selectDisplay, jumpToImgPanel, selectedID, infoStore } from './stores.js';
     import Edit24 from "carbon-icons-svelte/lib/Edit24";
     import VirtualPrivateCloudAlt20 from "carbon-icons-svelte/lib/VirtualPrivateCloudAlt20";
     import AreaCustom20 from "carbon-icons-svelte/lib/AreaCustom20";
@@ -15,20 +15,27 @@
     }
 
     function get_image(d) {
-        let position = Object.keys($fileList).indexOf($setImg);
+        let position = Object.values($infoStore).flat().findIndex(p => p.filename === $setImg);
 
         if (d === "prev") {
             if (position !== 0) {
                 position -= 1;
-                $setImg = Object.keys($fileList)[position];
+                $setImg = Object.values($infoStore).flat()[position].filename;
+                console.log($setImg)
                 $changingPicture = true;
             }
         } else if (d === "next")  {
-            if (position !== Object.keys($fileList).length - 1) {
+            if (position !== Object.values($infoStore).flat().length - 1) {
                 position += 1;
-                $setImg = Object.keys($fileList)[position];
+                $setImg = Object.values($infoStore).flat()[position].filename;
+                console.log($setImg)
                 $changingPicture = true;
             }
+        }
+
+        if ($selectDisplay !== "image_panel") {
+            $selectDisplay = "image_panel"
+            $jumpToImgPanel = true;
         }
     }
 

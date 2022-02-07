@@ -1,6 +1,6 @@
 <script>
 
-import { jumpToImgPanel, ctxtStore, infoStore, projName, select_display, exifData, fileList, setImg, selectedID, changingPicture, artiStore, shpStore, rmImg, showImg } from './stores.js';
+import { infoStore, jumpToImgPanel, ctxtStore, pointlessStore, projName, selectDisplay, exifData, fileList, setImg, selectedID, changingPicture, artiStore, shpStore, rmImg, showImg } from './stores.js';
 import ExifReader from 'exifreader';
 import Grid20 from "carbon-icons-svelte/lib/Grid20";
 import Image20 from "carbon-icons-svelte/lib/Image20";
@@ -17,11 +17,11 @@ $: if (p) {
 
 
 function create_struct() {
-    if (Object.keys($infoStore).length > 0) {
+    if (Object.keys($pointlessStore).length > 0) {
         for (let i = 0; i < allFiles.length; i++) {
-            if (Object.keys($infoStore).indexOf(allFiles[i]) === -1) {
+            if (Object.keys($pointlessStore).indexOf(allFiles[i]) === -1) {
                 let ctxtNum = "ctxt_" + i;
-                $infoStore[allFiles[i]] = { 
+                $pointlessStore[allFiles[i]] = { 
                     "Context_Number":{},
                     "Square":{"type":"text","description":"","default_value":""},
                     "Module":{"type":"text","description":"","default_value":""},
@@ -33,10 +33,7 @@ function create_struct() {
                     "Problems":{"type":"text","description":"","default_value":""},
                     "Artifacts":{},
                 };
-                $infoStore[allFiles[i]]["Context_Number"] = ctxtNum;
-
-
-                $ctxtStore[ctxtNum] =[{"file": allFiles[i]}]
+                $pointlessStore[allFiles[i]]["Context_Number"] = ctxtNum;
             }
         }
 
@@ -58,13 +55,9 @@ function create_struct() {
                 };
 
             tempObj[allFiles[i]]["Context_Number"] = ctxtNum;
-
-            $ctxtStore[ctxtNum] =[{"file": allFiles[i]}]
-
         }
-        $infoStore = tempObj;
+        $pointlessStore = tempObj;
     }
-    console.log("INFO STORE SET")
 }
 
 $: if (allFiles.length > 0) {
@@ -74,16 +67,35 @@ $: if (allFiles.length > 0) {
 $: if (allTags.length > 0) {
     for (let i = 0; i < allFiles.length; i++) {
         $exifData[allFiles[i]] = allTags[i]
+
     }
-    console.log($exifData)
-    $select_display = "image_panel"
+    $selectDisplay = "image_panel"
 }
 
 let allTags = [];
+let ctxtCt = 0;
 export const upload_images=(e)=> {
 		for (let i = 0; i < e.target.files.length; i++) {
 			image = e.target.files[i];
-      $fileList[image.name] = "/iss_images/" + image.name;
+
+      let ctxtID = "ctxt_" + ctxtCt;
+      $infoStore[ctxtID] = [{
+                            filename: image.name,
+                            filepath: "/iss_images/" + image.name,
+                            exifInfo: {},
+                            provenance: '', 
+                            photographer: {"unknown":"Unknown"},
+                            type: '',
+                            square: '',
+                            module: '',
+                            orbital_seg: {"unknown":"Unknown"},
+                            agency: {"unknown":"Unknown"},
+                            ctxt_type: '',
+                            desc: '',
+                            interp: '',
+                            problems: '',
+                            artifacts: [],
+                            }]
 
       allFiles = [...allFiles, image.name]
 
@@ -92,95 +104,79 @@ export const upload_images=(e)=> {
       reader.onload = e => {
         ExifReader.load(e.target.result).then(function (tags) {
                         allTags = [...allTags, tags];
+                        $infoStore[ctxtID][0].exifInfo = tags;
         });
       }
+      ctxtCt += 1;
 		}
+    console.log($infoStore)
 }
 
 $: if ($selectedID !== "") {
-    document.getElementById($selectedID).style.borderLeft = "0.2rem solid black";
-    document.getElementById($selectedID).style.fontWeight = "bold";
+  console.log($selectedID)
+    document.getElementById($infoStore[$selectedID][0].filename).style.borderLeft = "0.2rem solid black";
+    document.getElementById($infoStore[$selectedID][0].filename).style.fontWeight = "bold";
   } 
   
 function jump_to_image(f) {
   $changingPicture = true;
-  if ($selectedID !== $infoStore[f]["Context_Number"]) {
-    if ($selectedID === "") {
-      $selectedID = $infoStore[f]["Context_Number"];
-      if ($artiStore[$selectedID] === undefined) {
-        $artiStore[$selectedID] = []
-      }
-      if ($ctxtStore[$selectedID] === undefined) {
-        $ctxtStore[$selectedID] = []
-      }
-    } else {
-      document.getElementById($selectedID).style.borderLeft = "";
-      document.getElementById($selectedID).style.fontWeight = "";
-      $selectedID = $infoStore[f]["Context_Number"];
-      if ($artiStore[$selectedID] === undefined) {
-        $artiStore[$selectedID] = []
-      }
-      if ($ctxtStore[$selectedID] === undefined) {
-        $ctxtStore[$selectedID] = []
-      }
+
+  let key;
+  for (let i = 0; i < Object.values($infoStore).length; i++) {
+    if (Object.values($infoStore)[i][0].filename === f) {
+      key = Object.keys($infoStore)[i];
     }
   }
 
+  console.log(key)
+  
+  if ($selectedID !== key) {
+    if ($selectedID === "") {
+      $selectedID = key;
+    } else {
+      document.getElementById($infoStore[$selectedID][0].filename).style.borderLeft = "";
+      document.getElementById($infoStore[$selectedID][0].filename).style.fontWeight = "";
+      $selectedID = key;
+    }
+  }
   $setImg = f;
+
+  if ($selectDisplay !== "image_panel") {
+    $selectDisplay = "image_panel"
+    $jumpToImgPanel = true;
+
+  }
 }
 
+
 function remove_file() {
-  let currPos = Object.keys($fileList).indexOf($setImg);
+  let currPos = Object.values($infoStore).flat().findIndex(p => p.filename === $setImg);
 
-  let byCtxt = $selectedID;
-  var result = Object.values($infoStore).find(obj => {
-            return obj.Context_Number === byCtxt
-        })
-  let byFile = Object.keys($infoStore)[Object.values($infoStore).indexOf(result)]
-
-  if (confirm("Are you sure you would like to remove file " + $ctxtStore[$selectedID][0].file + "?")) {
+  if (confirm("Are you sure you would like to remove file " + $infoStore[$selectedID][0].filename + "?")) {
     $rmImg = true;
-    const indexCtxt = Object.keys($ctxtStore).indexOf($selectedID);
+    const indexCtxt = Object.keys($infoStore).indexOf($selectedID);
     if (indexCtxt > -1) {
-      let oc = Object.keys($ctxtStore)[indexCtxt]
-      let oa = Object.keys($artiStore)[indexCtxt]
+      let oc = Object.keys($infoStore)[indexCtxt]
       let os = Object.keys($shpStore)[indexCtxt]
-      delete $ctxtStore[oc];
-      delete $artiStore[oa];
+
+      delete $infoStore[oc];
       delete $shpStore[os];
 
-
-      $ctxtStore = $ctxtStore;
-      $artiStore = $artiStore;
-      $shpStore = $shpStore;
-    }    
-
-    const indexInfo = Object.keys($infoStore).indexOf(byFile);
-    if (indexInfo > -1) {
-      let oi = Object.keys($infoStore)[indexInfo]
-      let oe = Object.keys($exifData)[indexInfo]
-      let of = Object.keys($fileList)[indexInfo]
-
-
-      delete $infoStore[oi];
-      delete $exifData[oe];
-      delete $fileList[of];
-
-
       $infoStore = $infoStore;
-      $exifData = $exifData;
-      $fileList = $fileList;
+      $shpStore = $shpStore;
     }
+    
+    console.log($shpStore)
+    console.log($infoStore)
 
-    console.log(Object.keys($fileList).length > 0)
-    if (currPos >= 0 && Object.keys($fileList).length > 0) {
+
+    if (currPos >= 0 && Object.values($infoStore).flat().length > 0) {
       if (currPos > 0) {
         currPos -= 1;
       }
-      console.log("pos op1")
-      $setImg = Object.keys($fileList)[currPos];
+      $setImg = Object.values($infoStore).flat()[currPos].filename;
       $changingPicture = true;
-      $selectedID = Object.keys($ctxtStore)[currPos]
+      $selectedID = Object.keys($infoStore)[currPos]
 
     } else {
       // TO DO: NOT SURE HOW WELL THIS WILL WORK WITH PERSISTANT STORAGE
@@ -188,25 +184,15 @@ function remove_file() {
       window.location.reload()
 
     }
-    
-    console.log($infoStore)
-    console.log($ctxtStore)
-    console.log($artiStore)
-    console.log($shpStore)
-    console.log($exifData)
-    console.log($fileList)
-
-
-
 
   } else {
       text = "You cancelled!";
   }
 }
 
-function return_to_img_panel(f) {
-  if ($select_display !== "image_panel") {
-    $select_display = "image_panel"
+function return_to_img_panel() {
+  if ($selectDisplay !== "image_panel") {
+    $selectDisplay = "image_panel"
     $jumpToImgPanel = true;
   }
 }
@@ -227,18 +213,18 @@ function return_to_img_panel(f) {
       </div>
       <div id="project_tools_panel">
         <div class="button_panel" style="margin:0.1rem 0;" >
-          <select style="width:48%" id="infoStore_preset_filters_list" onchange="img_fn_list_onpresetfilter_select()" title="Filter file list using predefined filters">
+          <select style="width:48%" id="pointlessStore_preset_filters_list" onchange="img_fn_list_onpresetfilter_select()" title="Filter file list using predefined filters">
             <option value="all">All files</option>
             <option value="files_missing_file_annotations">Show files missing annotations</option>
           </select>
-          <div on:click={() => ($select_display = "image_grid_panel")} style="font-size: 2em;" id="img_toggle"><Grid20 /><title>Switch to Image Grid View</title></div>
-          <div on:click={() => return_to_img_panel($selectedID)} style="font-size: 2em;" id="img_toggle"><Image20 /><title>Switch to Image Grid View</title></div>
+          <div on:click={() => ($selectDisplay = "image_grid_panel")} style="font-size: 2em;" id="img_toggle"><Grid20 /><title>Switch to Image Grid View</title></div>
+          <div on:click={() => return_to_img_panel()} style="font-size: 2em;" id="img_toggle"><Image20 /><title>Switch to Image Panel</title></div>
         </div>
       </div>
       <div id="img_fn_list">
         <ul>
-          {#each Object.keys($infoStore) as file}
-            <li id={$infoStore[file]["Context_Number"]} on:click={()=> jump_to_image(file)} title={file} class="buffered">{file}</li>
+          {#each Object.entries($infoStore) as ctxt}
+            <li id={ctxt[1][0].filename} on:click={()=> jump_to_image(ctxt[1][0].filename)} title={ctxt[1][0].filename} class="buffered">{ctxt[1][0].filename}</li>
           {/each}
         </ul>
       </div>

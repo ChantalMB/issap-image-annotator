@@ -8,7 +8,7 @@ import SelectorPack from '@recogito/annotorious-selector-pack';
 import ShpLbl from '@recogito/annotorious-shape-labels';
 import '@recogito/annotorious-openseadragon/dist/annotorious.min.css';
 
-import { viewer, infoStore, selectedID, exifData, selectedShape, fileList, setImg, showImg, shpStore, artiStore, ctxtStore, zoomIn, zoomOut, centreImg, rowCheck, jumpToImgPanel, rmImg} from './stores.js';
+import { viewer, pointlessStore, selectedID, infoStore, exifData, selectedShape, fileList, setImg, showImg, shpStore, artiStore, ctxtStore, zoomIn, zoomOut, centreImg, rowCheck, jumpToImgPanel, rmImg} from './stores.js';
 
 
 
@@ -17,7 +17,6 @@ let anno;
 let count = 0;
 
 onMount( async () => {
-    // GOING FROM IMG PANEL TO IMG GRID BREAKS ZOOM FUNCITONALITY
     if ($viewer !== undefined) {
         $viewer.destroy()
         $viewer = null;
@@ -51,15 +50,18 @@ onMount( async () => {
 
     if (Object.keys($shpStore).indexOf($selectedID) !== -1) {
 		for (let i = 0; i < Object.keys($shpStore[$selectedID]).length; i++) {
-            console.log(anno)
 			anno.addAnnotation($shpStore[$selectedID][i]);
             count += 1;
 
 		}
-        $jumpToImgPanel = false;
 	}
+    $jumpToImgPanel = false;
 
     initDrawing();
+
+    console.log("SHOW IMG CANVAS")
+    console.log($showImg)
+
 });
 
 $: if ($rmImg) {
@@ -110,21 +112,18 @@ function initDrawing() {
 function onCreate() {
     const annotations = anno.getAnnotations();
     // do something with annotations
-    console.log(annotations)
     $shpStore[$selectedID] = annotations
     $rowCheck = true;
-    console.log($shpStore);
 }
 
 function onUpdate() {
     const annotations = anno.getAnnotations();
     // do something with annotations
-    console.log(annotations)
     $shpStore[$selectedID] = annotations
-    console.log($shpStore);
 }
 
 $: if ($showImg) {
+    console.log($jumpToImgPanel)
     if ($jumpToImgPanel === false) {
         resetView()
 
@@ -142,6 +141,9 @@ function resetView() {
 		if (anno !== undefined) {
 			anno.clearAnnotations();
 		}
+
+        console.log("SHOW IMG RS VIEW")
+        console.log($showImg)
 
 	}
 	checkAnno()
@@ -171,46 +173,28 @@ $:  if ($selectedShape !== "") {
     }
 
 $: if ($setImg === "") {
-        $setImg = Object.keys($fileList)[0];
-        console.log($setImg)
-        $selectedID = $infoStore[$setImg]["Context_Number"];
-        if ($artiStore[$selectedID] === undefined) {
-            $artiStore[$selectedID] = []
-        }
-        if ($ctxtStore[$selectedID] === undefined) {
-            $ctxtStore[$selectedID] = []
-        }
-        $showImg = Object.values($fileList)[0];
+        $setImg = Object.entries($infoStore)[0][1][0].filename;
+        $selectedID = Object.keys($infoStore)[0];
+        $showImg = Object.entries($infoStore)[0][1][0].filepath;
     } else {
+        let key;
+        for (let i = 0; i < Object.values($infoStore).length; i++) {
+            if (Object.values($infoStore)[i][0].filename === $setImg) {
+                key = Object.keys($infoStore)[i];
+            }
+        }
+
         if ($selectedID === "") {
-            $selectedID = $infoStore[$setImg]["Context_Number"];
-            if ($artiStore[$selectedID] === undefined) {
-                $artiStore[$selectedID] = []
-            }
-            if ($ctxtStore[$selectedID] === undefined) {
-                $ctxtStore[$selectedID] = []
-            }
-        } else if ($selectedID !== $infoStore[$setImg]["Context_Number"]) {
-            document.getElementById($selectedID).style.borderLeft = "";
-            document.getElementById($selectedID).style.fontWeight = "";
-            $selectedID = $infoStore[$setImg]["Context_Number"];
-            if ($artiStore[$selectedID] === undefined) {
-                $artiStore[$selectedID] = []
-            }
-            if ($ctxtStore[$selectedID] === undefined) {
-                $ctxtStore[$selectedID] = []
-            }
+            $selectedID = key;
+        } else if ($selectedID !== key) {
+            document.getElementById($infoStore[$selectedID][0].filename).style.borderLeft = "";
+            document.getElementById($infoStore[$selectedID][0].filename).style.fontWeight = "";
+            $selectedID = key;
         }
         
-        $showImg = $fileList[$setImg];
-    }
+        $showImg = $infoStore[$selectedID][0].filepath;
 
-let w;
-let h;
-$: if ($exifData[$ctxtStore[$selectedID][0].file]) {
-    h = $exifData[$ctxtStore[$selectedID][0].file]["Image Height"].description;
-    w = $exifData[$ctxtStore[$selectedID][0].file]["Image Width"].description;
-}
+    }
 
 let key;
 
@@ -224,7 +208,7 @@ function handleKeydown(event) {
             return obj.id === selected.id
         })
 
-        var resultArti = $artiStore[$selectedID].find(obj => {
+        var resultArti = $infoStore[$selectedID][0].artifacts.find(obj => {
             return obj.arti_id === selected.body[0].value
         })
         
@@ -236,21 +220,21 @@ function handleKeydown(event) {
             $shpStore[$selectedID] = $shpStore[$selectedID];
         }
 
-        const indexArti = $artiStore[$selectedID].indexOf(resultArti);
+        const indexArti = $infoStore[$selectedID][0].artifacts.indexOf(resultArti);
         if (indexArti > -1) {
-            $artiStore[$selectedID].splice(indexArti, 1); 
-            $artiStore[$selectedID] = $artiStore[$selectedID];
+            $infoStore[$selectedID][0].artifacts.splice(indexArti, 1); 
+            $infoStore[$selectedID][0].artifacts = $infoStore[$selectedID][0].artifacts;
         }
 
         count = 0
 
         for (let i = 0; i < $shpStore[$selectedID].length; i++) {
             $shpStore[$selectedID][i].body[0].value = "arti_" + count;
-            $artiStore[$selectedID][i].arti_id = "arti_" + count;
+            $infoStore[$selectedID][0].artifacts[i].arti_id = "arti_" + count;
             count += 1;
         }
-
-        anno.setAnnotations($shpStore[$selectedID]);        
+        anno.setAnnotations($shpStore[$selectedID]);  
+      
 
     }
 		

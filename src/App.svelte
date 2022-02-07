@@ -6,8 +6,10 @@ import { tick } from 'svelte';
 import Save20 from "carbon-icons-svelte/lib/Save20";
 
 
-import { infoStore, projName, select_display, setImg, exifData, selectedID, artiStore, fileList, ctxtStore, shpStore, rowCheck, changingPicture, jumpToImgPanel } from './stores.js';
+import { pointlessStore, infoStore, projName, selectDisplay, setImg, exifData, selectedID, artiStore, fileList, ctxtStore, shpStore, rowCheck, changingPicture, jumpToImgPanel } from './stores.js';
 import JSZip from 'jszip';
+import { saveAs } from 'file-saver';
+
 
 import Sidebar from './Sidebar.svelte';
 let accessFunc;
@@ -109,12 +111,12 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 });
 
-$: if ($fileList === {}) {
+$: if ($infoStore === {}) {
   curr_display("page_start_info")
 }
 
-$: if ($select_display) {
-  console.log($select_display)
+$: if ($selectDisplay) {
+  console.log($selectDisplay)
 }
 
 
@@ -152,7 +154,7 @@ function init_anno_accordion() {
 }
 
 function curr_display(selection) {
-  $select_display = selection;
+  $selectDisplay = selection;
 }
 
 let files, fileInput, image;
@@ -166,7 +168,6 @@ $: if (allFiles.length > 0) {
 let scrollToDiv;
 
 async function autoScroll() {
-  console.log("autoscroll")
 		await tick(); // Wait until DOM was updated
 		scrollToDiv.scrollTo({ top: scrollToDiv.scrollHeight, behavior: 'smooth' }); // Scroll to the bottom of the container
 	}
@@ -175,30 +176,25 @@ $: if ($rowCheck) {
     autoScroll();
 }
 
-$: console.log($ctxtStore)
-
 function jump_to_image(f) {
-  $select_display = "image_panel"
+  $selectDisplay = "image_panel"
   $jumpToImgPanel = true;
-  if ($selectedID !== $infoStore[f]["Context_Number"]) {
+
+  let key;
+  for (let i = 0; i < Object.values($infoStore).length; i++) {
+    if (Object.values($infoStore)[i][0].filename === f) {
+      key = Object.keys($infoStore)[i];
+    }
+  }
+  console.log(key)
+
+  if ($selectedID !== key) {
     if ($selectedID === "") {
-      $selectedID = $infoStore[f]["Context_Number"];
-      if ($artiStore[$selectedID] === undefined) {
-        $artiStore[$selectedID] = []
-      }
-      if ($ctxtStore[$selectedID] === undefined) {
-        $ctxtStore[$selectedID] = []
-      }
+      $selectedID = key;
     } else {
-      document.getElementById($selectedID).style.borderLeft = "";
-      document.getElementById($selectedID).style.fontWeight = "";
-      $selectedID = $infoStore[f]["Context_Number"];
-      if ($artiStore[$selectedID] === undefined) {
-        $artiStore[$selectedID] = []
-      }
-      if ($ctxtStore[$selectedID] === undefined) {
-        $ctxtStore[$selectedID] = []
-      }
+      document.getElementById($infoStore[$selectedID][0].filename).style.borderLeft = "";
+      document.getElementById($infoStore[$selectedID][0].filename).style.fontWeight = "";
+      $selectedID = key;
     }
   }
 
@@ -208,21 +204,23 @@ function jump_to_image(f) {
 function download_as_csv() {
   let ctxtCSV = "Filename|Context_Number|Provenance|Photographer|Square|Module|Orbital_Segment|Agency|Context_Type|Description|Interpretation|Problems\n"
 
-  for (let i = 0; i < Object.keys($ctxtStore).length; i++) {
-    let ctxtRef = Object.keys($ctxtStore)[i] 
-    let currRow = $ctxtStore[ctxtRef][0].file + "|" + ctxtRef + "|" + $ctxtStore[ctxtRef][1].provenance + "|" + Object.values($ctxtStore[ctxtRef][1].photographer) + "|" + $ctxtStore[ctxtRef][1].square + "|" + $ctxtStore[ctxtRef][1].module + "|" + Object.values($ctxtStore[ctxtRef][1].orbital_seg) + "|" + Object.values($ctxtStore[ctxtRef][1].agency) + "|" + $ctxtStore[ctxtRef][1].ctxt_type + "|" + $ctxtStore[ctxtRef][1].desc + "|" + $ctxtStore[ctxtRef][1].interp + "|" + $ctxtStore[ctxtRef][1].problems + "\n";
+  for (let i = 0; i < Object.keys($infoStore).length; i++) {
+    let ctxtRef = Object.keys($infoStore)[i] 
+    let currRow = $infoStore[ctxtRef][0].filename + "|" + ctxtRef + "|" + $infoStore[ctxtRef][0].provenance + "|" + Object.values($infoStore[ctxtRef][0].photographer) + "|" + $infoStore[ctxtRef][0].square + "|" + $infoStore[ctxtRef][0].module + "|" + Object.values($infoStore[ctxtRef][0].orbital_seg) + "|" + Object.values($infoStore[ctxtRef][0].agency) + "|" + $infoStore[ctxtRef][0].ctxt_type + "|" + $infoStore[ctxtRef][0].desc + "|" + $infoStore[ctxtRef][0].interp + "|" + $infoStore[ctxtRef][0].problems + "\n";
     ctxtCSV += currRow
   }
   
   let artiCSVs = [];
   let ctxtForFilename = [];
   
-  for (let i = 0; i < Object.keys($artiStore).length; i++) {
+  for (let i = 0; i < Object.keys($infoStore).length; i++) {
     let ctxt = "Context_Number|Artifact_ID|Name|Type|Fixed|Persistence|Notes|Recorded_by|Date_Added\n"
-    let currCtxt = Object.keys($artiStore)[i]
-    ctxtForFilename.push(currCtxt)
-    for (let j = 0; j < $artiStore[currCtxt].length; j++) {
-      let row = currCtxt + "|" + $artiStore[currCtxt][j].arti_id + "|" + $artiStore[currCtxt][j].name + "|" + $artiStore[currCtxt][j].type + "|" + $artiStore[currCtxt][j].fixed + "|" + $artiStore[currCtxt][j].persistence + "|" + $artiStore[currCtxt][j].artiNotes + "|" + $artiStore[currCtxt][j].recorder + "|" + $artiStore[currCtxt][j].dateRecorded + "\n"
+    let ctxtRef = Object.keys($infoStore)[i]
+    ctxtForFilename.push(ctxtRef)
+    console.log(ctxtRef)
+    for (let j = 0; j < $infoStore[ctxtRef][0].artifacts.length; j++) {
+      console.log($infoStore[ctxtRef][0].artifacts[j])
+      let row = ctxtRef + "|" + $infoStore[ctxtRef][0].artifacts[j].arti_id + "|" + $infoStore[ctxtRef][0].artifacts[j].name + "|" + $infoStore[ctxtRef][0].artifacts[j].type + "|" + $infoStore[ctxtRef][0].artifacts[j].fixed + "|" + $infoStore[ctxtRef][0].artifacts[j].persistence + "|" + $infoStore[ctxtRef][0].artifacts[j].artiNotes + "|" + $infoStore[ctxtRef][0].artifacts[j].recorder + "|" + $infoStore[ctxtRef][0].artifacts[j].dateRecorded + "\n"
       ctxt += row
     }
     artiCSVs.push(ctxt)
@@ -239,7 +237,7 @@ function download_as_csv() {
   }
 
   zip.generateAsync({type:"blob"}).then(function(content) {
-      saveAs(content, "ctxt.zip");
+      saveAs(content, "ISSAP_project_data_csv.zip");
   });
 
 }
@@ -252,28 +250,28 @@ function download_as_voc() {
   let ctxtForFilename = [];
   let totalImgs = [];
 
-  for (let i = 0; i < Object.keys($ctxtStore).length; i++) {
-    let ref = Object.keys($ctxtStore)[i]
-    ctxtForFilename.push($ctxtStore[ref][0].file)
+  for (let i = 0; i < Object.keys($infoStore).length; i++) {
+    let ref = Object.keys($infoStore)[i]
+    ctxtForFilename.push($infoStore[ref][0].filename)
 
     let base = `<annotation>
   <folder>iss_images</folder>
-  <filename>${$ctxtStore[ref][0].file}</filename>
-  <path>${$fileList[$ctxtStore[ref][0].file]}</path>
+  <filename>${$infoStore[ref][0].filename}</filename>
+  <path>${$infoStore[ref][0].filepath}</path>
   <source>
     <database>Unknown</database>
   </source>
   <size>
-    <width>${$exifData[$ctxtStore[ref][0].file]["Image Width"].value}</width>
-    <height>${$exifData[$ctxtStore[ref][0].file]["Image Height"].value}</height>
+    <width>${$infoStore[ref][0].exifInfo["Image Width"].value}</width>
+    <height>${$infoStore[ref][0].exifInfo["Image Height"].value}</height>
     <depth>3</depth>
   </size>
   <segmented>0</segmented>`;
     
-    if ($artiStore[ref] !== undefined) {
-      for (let j = 0; j < Object.keys($artiStore[ref]).length; j++) {
-        
+    if ($infoStore[ref][0].artifacts !== []) {
+      for (let j = 0; j < $infoStore[ref][0].artifacts.length; j++) {
         let coords = Object.values($shpStore[ref])[j].target.selector.value
+
         let obj;
         if (Object.values($shpStore[ref])[j].target.selector.type === "FragmentSelector") {
           coords = coords.replace(/[^0-9\.]+/g," ");
@@ -303,7 +301,7 @@ function download_as_voc() {
 
         obj = `
   <object>
-    <name>${$artiStore[ref][j].arti_id}</name>
+    <name>${$infoStore[ref][0].artifacts[j].type}</name>
     <pose>Unspecified</pose>
     <truncated>0</truncated>
     <difficult>0</difficult>
@@ -334,60 +332,37 @@ function download_as_voc() {
 
   var baseImgs = zip.folder("images");
   for (let i = 0; i < totalImgs.length; i++) {
-    baseImgs.file(ctxtForFilename[i], $fileList[ctxtForFilename[i]]);
+    baseImgs.file(ctxtForFilename[i], $infoStore[Object.keys($infoStore)[i]][0].filename);
   }
 
   zip.generateAsync({type:"blob"}).then(function(content) {
-      saveAs(content, "pascal_voc.zip");
+      saveAs(content, "ISSAP_project_data_pascal_voc.zip");
   });             
 }
 
 function save_project() {
-  let fullSave = [];
-  for (let i = 0; i < Object.keys($ctxtStore).length; i++) {
-    let currInfo = {}
-    let ref = Object.keys($ctxtStore)[i]
-    currInfo[ref] = { 
-                      file: Object.values($ctxtStore)[i][0].file,
-                      provenance: Object.values($ctxtStore)[i][1].provenance, 
-                      photographer: Object.values($ctxtStore[ref][1].photographer)[0],
-                      type: Object.values($ctxtStore)[i][1].type,
-                      square: Object.values($ctxtStore)[i][1].square,
-                      module: Object.values($ctxtStore)[i][1].module,
-                      orbital_seg: Object.values($ctxtStore[ref][1].orbital_seg)[0],
-                      agency: Object.values($ctxtStore[ref][1].agency)[0],
-                      ctxt_type: Object.values($ctxtStore)[i][1].ctxt_type,
-                      desc: Object.values($ctxtStore)[i][1].desc,
-                      interp: Object.values($ctxtStore)[i][1].interp,
-                      problems: Object.values($ctxtStore)[i][1].problems,
-                      exifInfo: JSON.stringify($exifData[Object.values($ctxtStore)[i][0].file]),
-                      artifacts: [],
-                    }
-
-    for (let j = 0; j < Object.keys($artiStore[ref]).length; j++) {
-      currInfo[ref].artifacts.push({
-                                  arti_id: $artiStore[ref][j].arti_id, 
-                                  name: $artiStore[ref][j].name, 
-                                  type: $artiStore[ref][j].type,
-                                  fixed: $artiStore[ref][j].fixed,
-                                  persistence: $artiStore[ref][j].persistence,
-                                  artiNotes: $artiStore[ref][j].artiNotes,
-                                  recorder: $artiStore[ref][j].recorder,
-                                  dateRecorded: $artiStore[ref][j].dateRecorded,
-                                  shapeInfo: Object.values($shpStore[ref])[j]
-                                });      
+  let fullSave = $infoStore;
+  for (let i = 0; i < Object.keys(fullSave).length; i++) {
+    let ref = Object.keys(fullSave)[i]
+    for (let j = 0; j < fullSave[ref][0].artifacts.length; j++) {
+      if ($shpStore[ref] !== undefined) {
+        fullSave[ref][0].artifacts[j].shpInfo = Object.values($shpStore[ref])[j]
+      }
     }
-
-    currInfo[ref].artifacts = JSON.stringify(currInfo[ref].artifacts);
-    fullSave.push(currInfo);  
+    fullSave[ref][0].artifacts = JSON.stringify(fullSave[ref][0].artifacts);
   }
 
+  console.log(fullSave)
+
   write_to_json(fullSave);
+
+  fullSave = {};
 
 }
 
 
 async function write_to_json(data) {
+  // TO DO: PASS $NAME FOR FILE SAVE NAME
   await fetch(`/`, {
     method: 'POST',
     body: JSON.stringify(data),
@@ -472,10 +447,10 @@ function load_project() {
 
       <div id="display_area">
 
-        {#if $select_display === "image_panel"}
+        {#if $selectDisplay === "image_panel"}
           <Annotation_Canvas files={files} />
 
-        {:else if $select_display === "image_grid_panel"}
+        {:else if $selectDisplay === "image_grid_panel"}
           <div id="image_grid_panel" class="display_area_content">
 
             <div id="image_grid_group_panel">
@@ -483,10 +458,10 @@ function load_project() {
             </div>
 
             <div class="img_grid">
-              {#each Object.keys($fileList) as ctxt}
+              {#each Object.entries($infoStore) as ctxt}
         
                     <!-- svelte-ignore a11y-img-redundant-alt -->
-                    <img on:click={()=> jump_to_image(ctxt)} src={$fileList[ctxt]} alt="ISS photo">
+                    <img on:click={()=> jump_to_image(ctxt[1][0].filename)} src={ctxt[1][0].filepath} alt="ISS photo">
                 
               {:else}
                 <p>loading...</p>
@@ -496,7 +471,7 @@ function load_project() {
             
           </div> <!-- end of image grid panel -->
 
-        {:else if $select_display === "settings_panel"}
+        {:else if $selectDisplay === "settings_panel"}
           <div id="settings_panel" class="display_area_content">
             <h2>Settings</h2>
             <div class="row">
@@ -584,17 +559,17 @@ function load_project() {
             </div>
           </div> <!-- end of settings panel -->
 
-        {:else if $select_display === "page_404"}
+        {:else if $selectDisplay === "page_404"}
           <div id="page_404" class="display_area_content narrow_page_content">
             <h2>File Not Found</h2>
             <p>Filename: <span style="font-family:Mono;" id="page_404_filename"></span></p>
 
             <p>We recommend that you update the default path in <span class="text_button" title="Show Project Settings" on:click={() => settings_panel_toggle()}>project settings</span> to the folder which contains this image.</p>
 
-            <p>A temporary fix is to use <span class="text_button" title="Load or Add Images" on:click={() => upload_images()}>browser's file selector</span> to manually locate and add this file. We do not recommend this approach because it requires you to repeat this process every time your load this project in the application.</p>
+            <p>A temporary fix is to use <span class="text_button" title="Load or Add Images" on:click={(e)=>accessFunc.upload_images(e)}>browser's file selector</span> to manually locate and add this file. We do not recommend this approach because it requires you to repeat this process every time your load this project in the application.</p>
           </div> <!-- end of file not found panel -->
 
-        {:else if $select_display === "page_start_info"}
+        {:else if $selectDisplay === "page_start_info"}
           <div id="page_start_info" class="display_area_content narrow_page_content">
             <ul>
               <li><b>BEFORE YOU BEGIN:</b> Ensure the images you want to upload are in the "public/iss_images/" folder.</li>
@@ -604,14 +579,14 @@ function load_project() {
             </ul>
           </div>
 
-        {:else if $select_display === "page_load_ongoing"}
+        {:else if $selectDisplay === "page_load_ongoing"}
           <div id="page_load_ongoing" class="display_area_content narrow_page_content">
             <div style="text-align:center">
               <div style="margin-top:4rem">Loading ...</div>
             </div>
           </div>
 
-        {:else if $select_display === "page_about"}
+        {:else if $selectDisplay === "page_about"}
           <div id="page_about" class="display_area_content" style="width:40rem !important">
             <div style="text-align:center">
               <div style="margin-top:4rem">Guide</div>
@@ -620,7 +595,7 @@ function load_project() {
           </div> 
           <!-- end of page_about -->
 
-        {:else if $select_display === "page_license"}
+        {:else if $selectDisplay === "page_license"}
 
           <div id="page_license" class="display_area_content narrow_page_content">
             <pre>
