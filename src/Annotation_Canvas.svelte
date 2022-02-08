@@ -18,6 +18,7 @@ let count = 0;
 
 onMount( async () => {
     if ($viewer !== undefined) {
+        console.log("viewer init")
         $viewer.destroy()
         $viewer = null;
     }
@@ -43,7 +44,7 @@ onMount( async () => {
     }; 
     
     anno = Annotorious($viewer, config);
-    
+
     new SelectorPack(anno, { 
         tools: ['polygon']
     });
@@ -65,6 +66,7 @@ onMount( async () => {
 });
 
 $: if ($rmImg) {
+    console.log("rmImg")
     anno.clearAnnotations();
     $rmImg = false;
 }
@@ -184,23 +186,16 @@ $: if ($setImg === "") {
             }
         }
 
-        if ($selectedID === "") {
-            $selectedID = key;
-        } else if ($selectedID !== key) {
-            document.getElementById($infoStore[$selectedID][0].filename).style.borderLeft = "";
-            document.getElementById($infoStore[$selectedID][0].filename).style.fontWeight = "";
-            $selectedID = key;
-        }
-        
+        $selectedID = key;
         $showImg = $infoStore[$selectedID][0].filepath;
 
     }
 
 let key;
 
-function handleKeydown(event) {
+function handleKeypress(event) {
     key = event.key;
-
+    
     if (key === 'Backspace' && anno.getSelected() !== undefined) {
         const selected = anno.getSelected();
 
@@ -234,16 +229,13 @@ function handleKeydown(event) {
             count += 1;
         }
         anno.setAnnotations($shpStore[$selectedID]);  
-      
-
-    }
-		
+    }		
 
 }
 
 </script>
 
-<svelte:window on:keydown={handleKeydown}/>
+<svelte:window on:keydown={handleKeypress}/>
 
 <div id="image_panel" class="display_area_content" style="height: 75.7vh; width: 67vw;">
 

@@ -15,7 +15,7 @@ export const jumpToImgPanel = writable(false);
 
 export const exifData = writable({});
 
-export const projName = writable("");
+export const projName = writable("ISSAP_project_save");
 
 export const selectDisplay = writable("");
 
@@ -41,6 +41,12 @@ export const rmImg = writable(false);
 export const viewer = writable();
 
 export const typeCategory = writable([]);
+
+export const os = writable([{"unknown":"Unknown"},{"us":"USA"},{"eur":"EUR"},{"ca":"CA"}]);
+export const ag = writable([{"unknown":"Unknown"}, {"esa":"ESA"},{"nasa":"NASA"},{"csa":"CSA"}]);
+export const phg = writable([{"unknown":"Unknown"}, {"kb":"Kayla Barron"}, {"rj":"Raja Chari"}, {"tm":"Thomas Marshburn"}, {"mm":"Matthias Maurer"}, {"mvh": "Mark Vande Hei"}]);
+
+
 
 
 

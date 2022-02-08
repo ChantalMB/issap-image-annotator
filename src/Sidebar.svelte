@@ -7,72 +7,10 @@ import Image20 from "carbon-icons-svelte/lib/Image20";
 
 
 let files = null; 
-let fileInput, image, template;
-let allFiles = [];
-let p;
+let flFilter;
 
-$: if (p) {
-    $projName = p;
-}
+let fileInputImgs, image;
 
-
-function create_struct() {
-    if (Object.keys($pointlessStore).length > 0) {
-        for (let i = 0; i < allFiles.length; i++) {
-            if (Object.keys($pointlessStore).indexOf(allFiles[i]) === -1) {
-                let ctxtNum = "ctxt_" + i;
-                $pointlessStore[allFiles[i]] = { 
-                    "Context_Number":{},
-                    "Square":{"type":"text","description":"","default_value":""},
-                    "Module":{"type":"text","description":"","default_value":""},
-                    "Orbital_Segment":{"type":"dropdown","description":"Orbital Segment","options":{"us":"USA","eur":"ESA","unknown":"Unknown"},"default_options":{"unknown":true}},
-                    "Agency":{"type":"dropdown","description":"Agency","options":{"esa":"ESA","nasa":"NASA","unknown":"Unknown"},"default_options":{"unknown":true}},
-                    "Context_type":{"type":"text","description":"","default_value":""},
-                    "Description":{"type":"text","description":"","default_value":""},
-                    "Interpretation":{"type":"text","description":"","default_value":""},
-                    "Problems":{"type":"text","description":"","default_value":""},
-                    "Artifacts":{},
-                };
-                $pointlessStore[allFiles[i]]["Context_Number"] = ctxtNum;
-            }
-        }
-
-    } else {
-        let tempObj = {};
-        for (let i = 0; i < allFiles.length; i++) {
-            let ctxtNum = "ctxt_" + i;
-            tempObj[allFiles[i]] = {
-                "Context_Number":{},
-                "Square":{"type":"text","description":"","default_value":""},
-                "Module":{"type":"text","description":"","default_value":""},
-                "Orbital_Segment":{"type":"dropdown","description":"Orbital Segment","options":{"us":"USA","eur":"ESA","unknown":"Unknown"},"default_options":{"unknown":true}},
-                "Agency":{"type":"dropdown","description":"Agency","options":{"esa":"ESA","nasa":"NASA","unknown":"Unknown"},"default_options":{"unknown":true}},
-                "Context_type":{"type":"text","description":"","default_value":""},
-                "Description":{"type":"text","description":"","default_value":""},
-                "Interpretation":{"type":"text","description":"","default_value":""},
-                "Problems":{"type":"text","description":"","default_value":""},
-                "Artifacts":{},
-                };
-
-            tempObj[allFiles[i]]["Context_Number"] = ctxtNum;
-        }
-        $pointlessStore = tempObj;
-    }
-}
-
-$: if (allFiles.length > 0) {
-  create_struct();
-}
-
-$: if (allTags.length > 0) {
-    for (let i = 0; i < allFiles.length; i++) {
-        $exifData[allFiles[i]] = allTags[i]
-
-    }
-    $selectDisplay = "image_panel"
-}
-
-let allTags = [];
 let ctxtCt = 0;
 export const upload_images=(e)=> {
 		for (let i = 0; i < e.target.files.length; i++) {
@@ -97,26 +35,18 @@ export const upload_images=(e)=> {
                             artifacts: [],
                             }]
 
-      allFiles = [...allFiles, image.name]
-
       let reader = new FileReader();
       reader.readAsDataURL(image);
       reader.onload = e => {
         ExifReader.load(e.target.result).then(function (tags) {
-                        allTags = [...allTags, tags];
                         $infoStore[ctxtID][0].exifInfo = tags;
         });
       }
       ctxtCt += 1;
 		}
     console.log($infoStore)
+    $selectDisplay = "image_panel"
 }
-
-$: if ($selectedID !== "") {
-  console.log($selectedID)
-    document.getElementById($infoStore[$selectedID][0].filename).style.borderLeft = "0.2rem solid black";
-    document.getElementById($infoStore[$selectedID][0].filename).style.fontWeight = "bold";
-  } 
   
 function jump_to_image(f) {
   $changingPicture = true;
@@ -127,18 +57,11 @@ function jump_to_image(f) {
       key = Object.keys($infoStore)[i];
     }
   }
-
-  console.log(key)
   
   if ($selectedID !== key) {
-    if ($selectedID === "") {
-      $selectedID = key;
-    } else {
-      document.getElementById($infoStore[$selectedID][0].filename).style.borderLeft = "";
-      document.getElementById($infoStore[$selectedID][0].filename).style.fontWeight = "";
-      $selectedID = key;
-    }
+    $selectedID = key;
   }
+
   $setImg = f;
 
   if ($selectDisplay !== "image_panel") {
@@ -208,14 +131,14 @@ function return_to_img_panel() {
       <div id="project_info_panel">
         <div class="row">
           <span class="col"><label for="project_name">Name: </label></span>
-          <span class="col"><input bind:value={p} type="text" id="project_name" title="project name"></span>
+          <span class="col"><input bind:value={$projName} type="text" id="project_name" title="project name"></span>
         </div>
       </div>
       <div id="project_tools_panel">
         <div class="button_panel" style="margin:0.1rem 0;" >
-          <select style="width:48%" id="pointlessStore_preset_filters_list" onchange="img_fn_list_onpresetfilter_select()" title="Filter file list using predefined filters">
+          <select bind:value={flFilter} style="width:48%" id="infoStore_preset_filters_list" title="Filter file list">
             <option value="all">All files</option>
-            <option value="files_missing_file_annotations">Show files missing annotations</option>
+            <option value="missingAnno">Show files missing annotations</option>
           </select>
           <div on:click={() => ($selectDisplay = "image_grid_panel")} style="font-size: 2em;" id="img_toggle"><Grid20 /><title>Switch to Image Grid View</title></div>
           <div on:click={() => return_to_img_panel()} style="font-size: 2em;" id="img_toggle"><Image20 /><title>Switch to Image Panel</title></div>
@@ -223,15 +146,23 @@ function return_to_img_panel() {
       </div>
       <div id="img_fn_list">
         <ul>
-          {#each Object.entries($infoStore) as ctxt}
-            <li id={ctxt[1][0].filename} on:click={()=> jump_to_image(ctxt[1][0].filename)} title={ctxt[1][0].filename} class="buffered">{ctxt[1][0].filename}</li>
-          {/each}
+            {#each Object.entries($infoStore) as ctxt}
+              {#if flFilter === "missingAnno" && ctxt[1][0].artifacts.length === 0 && ctxt[0] === $selectedID}
+                <li style="background-color: yellow; border-left: 0.2rem solid black; font-weight: bold;" id={ctxt[1][0].filename} on:click={()=> jump_to_image(ctxt[1][0].filename)} title={ctxt[1][0].filename} class="buffered">{ctxt[1][0].filename}</li>
+              {:else if flFilter === "missingAnno" && ctxt[1][0].artifacts.length === 0}
+                <li style="background-color: yellow;" id={ctxt[1][0].filename} on:click={()=> jump_to_image(ctxt[1][0].filename)} title={ctxt[1][0].filename} class="buffered">{ctxt[1][0].filename}</li>
+              {:else if ctxt[0] === $selectedID}
+                <li style="border-left: 0.2rem solid black; font-weight: bold;" id={ctxt[1][0].filename} on:click={()=> jump_to_image(ctxt[1][0].filename)} title={ctxt[1][0].filename} class="buffered">{ctxt[1][0].filename}</li>
+              {:else}
+                <li id={ctxt[1][0].filename} on:click={()=> jump_to_image(ctxt[1][0].filename)} title={ctxt[1][0].filename} class="buffered">{ctxt[1][0].filename}</li>
+              {/if}
+            {/each}
         </ul>
       </div>
-      <p>
+      
         <div class="button_panel">
-          <span class="button" on:click={()=>{fileInput.click();}} title="Add new file from local disk">Add Files</span>
-            <input bind:files style="display:none" type="file" accept="image/*" multiple on:change={(e)=>upload_images(e)} bind:this={fileInput} >
+          <span class="button" on:click={()=>{fileInputImgs.click();}} title="Add new file from local disk">Add Files</span>
+            <input bind:files style="display:none" type="file" accept="image/*" multiple on:change={(e)=>upload_images(e)} bind:this={fileInputImgs} >
           <span class="button" on:click={() => remove_file()} title="Remove selected file (i.e. file currently being shown) from project">Remove</span>
         </div>
     </div>

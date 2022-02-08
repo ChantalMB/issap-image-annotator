@@ -4,6 +4,8 @@ import { onMount } from 'svelte';
 import { tick } from 'svelte';
 
 import Save20 from "carbon-icons-svelte/lib/Save20";
+import { Diamonds } from 'svelte-loading-spinners'
+
 
 
 import { pointlessStore, infoStore, projName, selectDisplay, setImg, exifData, selectedID, artiStore, fileList, ctxtStore, shpStore, rowCheck, changingPicture, jumpToImgPanel } from './stores.js';
@@ -18,6 +20,7 @@ import Annotation_Editor from './Annotation_Editor.svelte';
 
 import Annotation_Canvas from './Annotation_Canvas.svelte'
 import Toolbar from './Toolbar.svelte';
+import Image_Grid from './Image_Grid.svelte'
 
 
 onMount(async () => {
@@ -157,7 +160,7 @@ function curr_display(selection) {
   $selectDisplay = selection;
 }
 
-let files, fileInput, image;
+let files, fileInputImgs;
 let allFiles = [];
 
 $: if (allFiles.length > 0) {
@@ -189,13 +192,7 @@ function jump_to_image(f) {
   console.log(key)
 
   if ($selectedID !== key) {
-    if ($selectedID === "") {
-      $selectedID = key;
-    } else {
-      document.getElementById($infoStore[$selectedID][0].filename).style.borderLeft = "";
-      document.getElementById($infoStore[$selectedID][0].filename).style.fontWeight = "";
-      $selectedID = key;
-    }
+    $selectedID = key;
   }
 
   $setImg = f;
@@ -370,42 +367,85 @@ function download_as_voc() {
   });             
 }
 
+let dataLoading = false;
+
+setInterval(function() {
+  save_project();
+}, 900000)
+
 function save_project() {
-  let fullSave = $infoStore;
+  dataLoading = true;
+  let fullSave = JSON.parse(JSON.stringify($infoStore));
   for (let i = 0; i < Object.keys(fullSave).length; i++) {
     let ref = Object.keys(fullSave)[i]
     for (let j = 0; j < fullSave[ref][0].artifacts.length; j++) {
       if ($shpStore[ref] !== undefined) {
+        console.log("here")
+        fullSave[ref][0].artifacts[j].shpInfo = {};
         fullSave[ref][0].artifacts[j].shpInfo = Object.values($shpStore[ref])[j]
       }
     }
     fullSave[ref][0].artifacts = JSON.stringify(fullSave[ref][0].artifacts);
   }
-
   console.log(fullSave)
-
   write_to_json(fullSave);
 
-  fullSave = {};
-
 }
-
 
 async function write_to_json(data) {
   // TO DO: PASS $NAME FOR FILE SAVE NAME
+  let req = {}
+  req[$projName] = data
+
   await fetch(`/`, {
     method: 'POST',
-    body: JSON.stringify(data),
+    body: JSON.stringify(req),
     headers:{
       'Content-Type': 'application/json'
-    }
+    },
   })
   .then(res => res.json())
   .then(res => console.log(res)); 
+
+  console.log("saving...")
+  setTimeout(function(){
+    dataLoading = false;
+    console.log("save complete!")
+  }, 1000);
+
 }
 
-function load_project() {
+let fileInputJSON;
+let chckFilelist = false;
+const get_project_file=(e)=> {
+  let json;
+  let reader = new FileReader();
 
+	reader.readAsText(e.target.files[0]);
+  reader.onload = e => {
+    json = JSON.parse(e.target.result)
+    load_project(json)
+  }
+}
+
+function load_project(f) {
+  let tempShpStore = {}
+
+  for ( let i = 0; i < Object.keys(f).length; ++i ) {
+    let ctxtRef = Object.keys(f)[i];
+    tempShpStore[ctxtRef] = [];
+    for ( let j = 0; j < f[ctxtRef][0].artifacts.length; ++j ) {
+      if (f[ctxtRef][0].artifacts[j].shpInfo !== undefined) {
+        tempShpStore[ctxtRef].push(f[ctxtRef][0].artifacts[j].shpInfo)
+        delete f[ctxtRef][0].artifacts[j].shpInfo;
+      }
+    }
+  }
+  $infoStore = f;
+  $shpStore = tempShpStore;
+  
+  jump_to_image($infoStore[Object.keys($infoStore)[0]][0].filename)
+  chckFilelist = true;
 }
 
 </script>
@@ -419,11 +459,6 @@ function load_project() {
     <!-- used by invoke_with_user_inputs() to gather user inputs -->
     <div id="user_input_panel"></div>
 
-    <!-- to show status messages -->
-    <div id="message_panel">
-      <div id="message_panel_content" class="content"></div>
-    </div>
-
     <!-- spreadsheet like editor for annotations -->
 
     <div class="top_panel" id="ui_top_panel">
@@ -432,12 +467,13 @@ function load_project() {
         <ul>
           <li>Project
             <ul>
-              <li on:click={() => load_project()} title="Load project (from a JSON file)">Load</li>
+              <li on:click={() => {fileInputJSON.click()}} title="Load project (from a JSON file)">Load</li>
+                <input bind:files style="display:none" type="file" accept=".json" on:change={(e)=>get_project_file(e)} bind:this={fileInputJSON} >
               <li on:click={() => save_project()} title="Save this project (as a JSON file)">Save</li>
               <li on:click={() => curr_display("settings_panel")} title="Show/edit project settings">Settings</li>
               <li class="submenu_divider"></li>
-              <li on:click={() => {fileInput.click();}} title="Add images locally stored in this computer">Add local files</li>
-                <input bind:files style="display:none" type="file" accept="image/*" multiple on:change={(e)=>accessFunc.upload_images(e)} bind:this={fileInput} >
+              <li on:click={() => {fileInputImgs.click()}} title="Add images locally stored in this computer">Add local files</li>
+                <input bind:files style="display:none" type="file" accept="image/*" multiple on:change={(e)=>accessFunc.upload_images(e)} bind:this={fileInputImgs} >
               <!-- <li on:click={() => project_file_add_url_with_input()} title="Add images from a web URL (e.g. http://www.robots.ox.ac.uk/~vgg/software/via/images/swan.jpg)">Add files from URL</li>
               <li on:click={() => project_file_add_abs_path_with_input()} title="Add images using absolute path of file (e.g. /home/abhishek/image1.jpg)">Add file using absolute path</li>
               <li on:click={() => sel_local_data_file('files_url')} title="Add images from a list of web url or absolute path stored in a text file (one url or path per line)">Add url or path from text file</li> -->
@@ -462,9 +498,15 @@ function load_project() {
       </div> <!-- end of menubar -->
 
       <!-- Shortcut toolbar -->
-      <div class="toolbar" id="right_toolbar">
-        <Save20 on:click={() => save_project()}/>
-      </div>
+      {#if dataLoading === true}
+        <div class="toolbar" id="right_toolbar" style="margin-top: 1%;">
+          <Diamonds size="25" color="white" unit="px" duration="1s"></Diamonds>
+        </div>
+      {:else}
+        <div class="toolbar" id="right_toolbar" style="margin-top: 0.25%;">
+          <Save20 on:click={() => save_project()}/>
+        </div>
+      {/if}
     </div> <!-- endof #top_panel -->
 
     <!-- Middle Panel contains a left-sidebar and image display areas -->
@@ -481,25 +523,8 @@ function load_project() {
           <Annotation_Canvas files={files} />
 
         {:else if $selectDisplay === "image_grid_panel"}
-          <div id="image_grid_panel" class="display_area_content">
+          <Image_Grid />
 
-            <div id="image_grid_group_panel">
-              <span class="tool">Group by&nbsp; <select id="image_grid_toolbar_group_by_select" onchange="image_grid_toolbar_onchange_group_by_select(this)"></select></span>
-            </div>
-
-            <div class="img_grid">
-              {#each Object.entries($infoStore) as ctxt}
-        
-                    <!-- svelte-ignore a11y-img-redundant-alt -->
-                    <img on:click={()=> jump_to_image(ctxt[1][0].filename)} src={ctxt[1][0].filepath} alt="ISS photo">
-                
-              {:else}
-                <p>loading...</p>
-              {/each}
-            </div>
-
-            
-          </div> <!-- end of image grid panel -->
 
         {:else if $selectDisplay === "settings_panel"}
           <div id="settings_panel" class="display_area_content">
@@ -510,83 +535,32 @@ function load_project() {
               </div>
 
               <div class="value">
-                <input type="text" id={$projName}/>
+                <input type="text" id={$projName} placeholder={$projName}/>
               </div>
             </div>
 
+            <!-- CHANGING THIS CURRENTLY DOES NOT DO ANYTHING-->
             <div class="row">
               <div class="variable">
                 <div class="name">Default Path</div>
                 <div class="desc">If all images in your project are saved in a single folder, set the default path to the location of this folder. The application will load images from this folder by default. Note: a default path of <code>"./"</code> indicates that the folder containing <code>issap.html</code> application file also contains the images in this project. For example: <code>/datasets/VOC2012/JPEGImages/</code> or <code>C:\Documents\data\</code>&nbsp;<strong>(note the trailing <code>/</code> and <code>\</code></strong>)</div>
               </div>
-
               <div class="value">
-                <input type="text" id="settings.core.default_filepath" placeholder="/datasets/pascal/voc2012/VOCdevkit/VOC2012/JPEGImages/"/>
+                <input type="text" placeholder="/iss_images/"/>
               </div>
             </div>
 
-            <div class="row">
+            <!-- <div class="row">
               <div class="variable">
                 <div class="name">Region Label</div>
                 <div class="desc">By default, each region in an image is labelled using the region-id. Here, you can select a more descriptive labelling of regions.</div>
               </div>
 
               <div class="value">
-                <select ></select>
-              </div>
-            </div>
-
-            <div class="row">
-              <div class="variable">
-                <div class="name">Region Colour</div>
-                <div class="desc">By default, each region is drawn using a single colour. Using this setting, you can assign a unique colour to regions grouped according to a region attribute.</div>
-              </div>
-
-              <div class="value">
                 <select></select>
               </div>
-            </div>
+            </div> -->
 
-            <div class="row">
-              <div class="variable">
-                <div class="name">Region Label Font</div>
-                <div class="desc">Font size and font family for showing region labels.</div>
-              </div>
-
-              <div class="value">
-                <input placeholder="12px Arial"/>
-              </div>
-            </div>
-
-            <div class="row">
-              <div class="variable">
-                <div class="name">Preload Buffer Size</div>
-                <div class="desc">Images are preloaded in buffer to allow smoother navigation of next/prev images. A large buffer size may slow down the overall browser performance. To disable preloading, set buffer size to 0.</div>
-              </div>
-              <div class="value">
-                <input type="text" id="settings.core.buffer_size" />
-              </div>
-            </div>
-
-            <div class="row">
-              <div class="variable">
-                <div class="name">On-image Annotation Editor</div>
-                <div class="desc">When a single region is selected, the on-image annotation editor is gets activated which the user to update annotations of this region. By default, this on-image annotation editor is placed near the selected region.</div>
-              </div>
-
-              <div class="value">
-                <select>
-                  <option value="NEAR_REGION">close to selected region</option>
-                  <option value="IMAGE_BOTTOM">at the bottom of image being annotated</option>
-                  <option value="DISABLE">DISABLE on-image annotation editor</option>
-                </select>
-              </div>
-            </div>
-
-            <div class="row" style="border:none;">
-              <button on:click={() => settings_save()} value="save_settings" style="margin-top:2rem">Save</button>
-              <button on:click={() => settings_panel_toggle()} value="cancel_settings" style="margin-left:2rem;">Cancel</button>
-            </div>
           </div> <!-- end of settings panel -->
 
         {:else if $selectDisplay === "page_404"}

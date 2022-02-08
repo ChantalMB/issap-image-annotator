@@ -1,16 +1,13 @@
 <script>
-import { infoStore, showImg, shpStore, selectedID, artiStore, ctxtStore, exifData, ctxtInfo, rowCheck, typeCategory } from './stores.js';
+import { infoStore, showImg, shpStore, selectedID, os, ag, phg, ctxtInfo, rowCheck, typeCategory } from './stores.js';
 
 
 let view;
 let provenance;
 
-
-
-
-let os = [{"us":"USA"},{"eur":"ESA"},{"unknown":"Unknown"}];
-let ag = [{"esa":"ESA"},{"nasa":"NASA"},{"unknown":"Unknown"}];
-let phg = [{"unknown":"Unknown"}, {"kb":"Kayla Barron"}, {"rj":"Raja Chari"}, {"tm":"Thomas Marshburn"}, {"mm":"Matthias Maurer"}, {"mvh": "Mark Vande Hei"}];
+// let os = [{"us":"USA"},{"eur":"ESA"},{"unknown":"Unknown"}];
+// let ag = [{"esa":"ESA"},{"nasa":"NASA"},{"unknown":"Unknown"}];
+// let phg = [{"unknown":"Unknown"}, {"kb":"Kayla Barron"}, {"rj":"Raja Chari"}, {"tm":"Thomas Marshburn"}, {"mm":"Matthias Maurer"}, {"mvh": "Mark Vande Hei"}];
 
 let currentTable = [];
 let artiHeaders = ["Artifact_ID", "Name", "Type", "Fixed", "Persistence", "Notes", "Recorded_by", "Date_Added"];
@@ -68,12 +65,12 @@ $: if ($shpStore) {
 
 const addArtiRow = () => (currentTable.push({ 
                         arti_id: $shpStore[$selectedID][$shpStore[$selectedID].length - 1].body[0].value, 
-                        name: 'Unnamed', 
+                        name: '', 
                         type: '',
                         fixed: 'y',
                         persistence: 'y',
                         artiNotes: '',
-                        recorder: 'Initials',
+                        recorder: '',
                         dateRecorded: get_curr_date(),
                         }), $infoStore[$selectedID][0].artifacts = currentTable)
 
@@ -134,7 +131,7 @@ function updateCategory(val) {
             </span>
             <span class="col">
                 <select bind:value={$infoStore[$selectedID][0].photographer}>
-                    {#each phg as p}
+                    {#each $phg as p}
                         <option value={p}>
                             {Object.values(p)}
                         </option>
@@ -149,7 +146,7 @@ function updateCategory(val) {
             </span>
             <span class="col">
                 <select bind:value={$infoStore[$selectedID][0].orbital_seg}>
-                    {#each os as loc}
+                    {#each $os as loc}
                         <option value={loc}>
                             {Object.values(loc)}
                         </option>
@@ -158,7 +155,7 @@ function updateCategory(val) {
             </span>
             <span class="col">
                 <select bind:value={$infoStore[$selectedID][0].agency}>
-                    {#each ag as org}
+                    {#each $ag as org}
                         <option value={org}>
                             {Object.values(org)}
                         </option>

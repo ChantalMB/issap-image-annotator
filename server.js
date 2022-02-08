@@ -11,16 +11,21 @@ app.use(cors());
 app.use(bodyParser.json());   
 
 app.post("/", function (req, res) {
-    let info = req.body;
+   let fp = './public/' + Object.keys(req.body)[0] + '.json'
+   let info = Object.values(req.body)[0];
+   
+   for (let i = 0; i < Object.keys(info).length; i++) {
+      info[Object.keys(info)[i]][0].artifacts = JSON.parse(info[Object.keys(info)[i]][0].artifacts)
+   }
 
-    for (let i = 0; i < Object.keys(info).length; i++) {
-       info[Object.keys(info)[i]][0].artifacts = JSON.parse(info[Object.keys(info)[i]][0].artifacts)
-    }
+   console.log(info)
 
-    fs.writeJson('./public/thing.json', info, err => {
-        if (err) return console.error(err)
-        console.log('success!')
-      })
+
+   fs.writeJson(fp, info, err => {
+      if (err) return console.error(err)
+      console.log('success!')
+   })
+   res.send(info)
 });
 
 
