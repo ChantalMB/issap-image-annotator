@@ -8,7 +8,7 @@ import { Diamonds } from 'svelte-loading-spinners'
 
 
 
-import { pointlessStore, infoStore, projName, selectDisplay, setImg, exifData, selectedID, artiStore, fileList, ctxtStore, shpStore, rowCheck, changingPicture, jumpToImgPanel } from './stores.js';
+import { typeCategory, infoStore, projName, selectDisplay, setImg, exifData, selectedID, artiStore, fileList, ctxtStore, shpStore, rowCheck, changingPicture, jumpToImgPanel } from './stores.js';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 
@@ -378,6 +378,10 @@ function save_project() {
   let fullSave = JSON.parse(JSON.stringify($infoStore));
   for (let i = 0; i < Object.keys(fullSave).length; i++) {
     let ref = Object.keys(fullSave)[i]
+    if (i === 0) {
+      console.log("added")
+      fullSave[ref][0].categories = $typeCategory
+    }
     for (let j = 0; j < fullSave[ref][0].artifacts.length; j++) {
       if ($shpStore[ref] !== undefined) {
         console.log("here")
@@ -430,9 +434,14 @@ const get_project_file=(e)=> {
 
 function load_project(f) {
   let tempShpStore = {}
+  let tempTypes = [];
 
   for ( let i = 0; i < Object.keys(f).length; ++i ) {
     let ctxtRef = Object.keys(f)[i];
+    if (i === 0) {
+      tempTypes = f[ctxtRef][0].categories
+      console.log(tempTypes)
+    }
     tempShpStore[ctxtRef] = [];
     for ( let j = 0; j < f[ctxtRef][0].artifacts.length; ++j ) {
       if (f[ctxtRef][0].artifacts[j].shpInfo !== undefined) {
@@ -443,6 +452,7 @@ function load_project(f) {
   }
   $infoStore = f;
   $shpStore = tempShpStore;
+  $typeCategory = tempTypes;
   
   jump_to_image($infoStore[Object.keys($infoStore)[0]][0].filename)
   chckFilelist = true;
