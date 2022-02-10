@@ -161,7 +161,6 @@ function checkAnno() {
 	}
 }
 
-
 function select_annotation_tool() {
     if ($selectedShape === "rect") {
         anno.setDrawingTool('rect');

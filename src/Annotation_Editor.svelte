@@ -63,6 +63,10 @@ $: if ($shpStore) {
     }
 }
 
+let findProv;
+$: if (findProv !== undefined) {
+    console.log(findProv.innerText)
+}
 const addArtiRow = () => (currentTable.push({ 
                         arti_id: $shpStore[$selectedID][$shpStore[$selectedID].length - 1].body[0].value, 
                         name: '', 
@@ -79,9 +83,9 @@ const addCtxtRow = () => ($ctxtInfo.push({
                         filename: $infoStore[$selectedID][0].filename,
                         filepath: $infoStore[$selectedID][0].filepath,
                         exifInfo: $infoStore[$selectedID][0].exifInfo,
-                        provenance: provenance, 
+                        provenance: findProv.innerHTML, 
                         photographer: {"unknown":"Unknown"},
-                        type: 0,
+                        type: '',
                         square: '',
                         module: '',
                         orbital_seg: {"unknown":"Unknown"},
@@ -127,7 +131,7 @@ function updateCategory(val) {
                 {$selectedID}
             </span>
             <span class="col">
-                {provenance}
+                <div bind:this={findProv}>{provenance}</div>
             </span>
             <span class="col">
                 <select bind:value={$infoStore[$selectedID][0].photographer}>
@@ -227,7 +231,7 @@ function updateCategory(val) {
                         <textarea bind:value={$infoStore[$selectedID][0].artifacts[i].artiNotes}></textarea>
                     </span>
                     <span class="col">
-                        <input value={$infoStore[$selectedID][0].artifacts[i].recorder} autocomplete="on">
+                        <input bind:value={$infoStore[$selectedID][0].artifacts[i].recorder}>
                     </span>
                     <span class="col">
                         {$infoStore[$selectedID][0].artifacts[i].dateRecorded}

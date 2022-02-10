@@ -11,6 +11,7 @@ import { Diamonds } from 'svelte-loading-spinners'
 import { typeCategory, infoStore, projName, selectDisplay, setImg, exifData, selectedID, artiStore, fileList, ctxtStore, shpStore, rowCheck, changingPicture, jumpToImgPanel } from './stores.js';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
+import area from 'area-polygon';
 
 
 import Sidebar from './Sidebar.svelte';
@@ -270,7 +271,148 @@ function download_as_csv() {
 }
 
 function download_as_coco() {
-  saveAs($fileList[$setImg], 'pic.jpg');  
+  let saveCOCO = {
+                  'info': {},
+                  'licenses': [],
+                  'images': [],
+                  'categories': [],
+                  'annotations': [],
+                };
+
+  saveCOCO['info'] = {
+                      'year': 2022,
+                      'version': 'v1.0',
+                      'description': 'ISSAP object detection dataset',
+                      'contributor': 'ISSAP',
+                      'url': 'https://github.com/ChantalMB/issap-image-annotator',
+                      'date_created': '2022-01-12T02:29'
+                    };
+
+  saveCOCO['licenses'].push({
+                            'url': 'https://creativecommons.org/licenses/by-nc/4.0/',
+                            'id': 1,
+                            'name': 'Attribution-NonCommercial'
+                            });
+
+  let uniqueCates = new Set(); 
+  let annoCount = 0;                         
+  for (let i = 0; i < Object.keys($infoStore).length; i++) {
+    let ref = Object.keys($infoStore)[i];
+    saveCOCO['images'].push({
+                            "id": Number(ref.split('_')[1]), 
+                            "width": $infoStore[ref][0].exifInfo["Image Width"].value, 
+                            "height": $infoStore[ref][0].exifInfo["Image Width"].value, 
+                            "file_name": $infoStore[ref][0].filename, 
+                            "license": 1, 
+                            "date_captured": $infoStore[ref][0].provenance,
+                            })
+
+    if ($infoStore[ref][0].artifacts !== []) {
+      for (let j = 0; j < $infoStore[ref][0].artifacts.length; j++) {
+        uniqueCates.add([$infoStore[ref][0].artifacts[j].name, $infoStore[ref][0].artifacts[j].type].toString())
+        let coords = Object.values($shpStore[ref])[j].target.selector.value
+        if (Object.values($shpStore[ref])[j].target.selector.type === "FragmentSelector") {
+          coords = coords.replace(/[^0-9\.]+/g," ");
+          coords = coords.split(" ");
+          coords.shift()
+
+          let bbox = [];
+          for (let n = 0; n < coords.length; n++) {
+            coords[n] = Number(coords[n]);
+            bbox.push(Number(coords[n]));
+          }
+           
+
+          let xmax = Number(coords[0]) + Number(coords[2])
+          let ymax = Number(coords[1]) + Number(coords[3])
+          coords[2] = xmax;
+          coords[3] = ymax;
+
+          let calcArea = [[coords[0], coords[1]], [coords[0], coords[2]], [coords[3], coords[2]], [coords[3], coords[1]]];
+          let segmentation = [coords[0], coords[1], coords[0], coords[2], coords[3], coords[2], coords[3], coords[1]];
+          saveCOCO['annotations'].push({
+                                      "segmentation": [segmentation],
+                                      "area": area(calcArea),
+                                      "iscrowd": 0,
+                                      "image_id": Number(ref.split('_')[1]),
+                                      "bbox": bbox,
+                                      "category_id": 0,
+                                      "id": annoCount,
+                                      'tempNm': $infoStore[ref][0].artifacts[j].name,
+                                    });
+        
+        } else {
+          let x = [];
+          let y = [];
+          coords = coords.replace(/[^0-9.,]/g," ");
+          coords = coords.split(" ");
+          coords = coords.filter(Boolean);
+
+          let segmentation = [];
+          let calcArea = [];
+          for (let n = 0; n < coords.length; n++) {
+            let sep = coords[n].split(",")
+            x.push(sep[0])
+            y.push(sep[1])
+
+            segmentation.push(Number(sep[0]));           
+            segmentation.push(Number(sep[1]));
+
+            calcArea.push([Number(sep[0]), Number(sep[1])])
+          }
+
+
+          let w = Math.max(...x) - Math.min(...x)
+          let h = Math.max(...y) - Math.min(...y)
+
+          let bbox = [Math.min(...x), Math.min(...y), w, h]
+
+          saveCOCO['annotations'].push({
+                                      "segmentation": [segmentation],
+                                      "area": area(calcArea),
+                                      "iscrowd": 0,
+                                      "image_id": Number(ref.split('_')[1]),
+                                      "bbox": bbox,
+                                      "category_id": 0,
+                                      "id": annoCount,
+                                      'tempNm': $infoStore[ref][0].artifacts[j].name,
+                                    });
+        }
+        annoCount += 1;
+      }
+    } 
+  }
+
+  let cateCount = 0
+  for (let item of uniqueCates) {
+    let cateRef = item.split(",");
+    saveCOCO['categories'].push({
+                                'supercategory': cateRef[1], 
+                                'id': cateCount, 
+                                'name': cateRef[0],
+                               })
+    cateCount += 1;                           
+  }
+
+  for (let c = 0; c < saveCOCO['annotations'].length; c++) {
+    let obj = saveCOCO['categories'].find(o => o.name === saveCOCO['annotations'][c].tempNm);
+    saveCOCO['annotations'][c].category_id = obj.id;
+
+    delete saveCOCO['annotations'][c].tempNm;
+  }
+
+  
+  var zip = new JSZip();
+
+  var annotatedData = zip.folder("annotations");
+  annotatedData.file('ISSAP_COCO_annotation_data.json', JSON.stringify(saveCOCO))
+  for (let i = 0; i < Object.keys($infoStore).length; i++) {
+    annotatedData.file($infoStore[Object.keys($infoStore)[i]][0].filename, create_img_file($infoStore[Object.keys($infoStore)[i]][0].filepath));
+  }
+
+  zip.generateAsync({type:"blob"}).then(function(content) {
+      saveAs(content, "ISSAP_project_data_COCO.zip");
+  }); 
 }
 
 function download_as_voc() {
@@ -346,6 +488,7 @@ function download_as_voc() {
   
     base += `
 </annotation>`;
+
     totalImgs.push(base)
   }
 
@@ -359,12 +502,22 @@ function download_as_voc() {
 
   var baseImgs = zip.folder("images");
   for (let i = 0; i < totalImgs.length; i++) {
-    baseImgs.file(ctxtForFilename[i], $infoStore[Object.keys($infoStore)[i]][0].filename);
+    baseImgs.file($infoStore[Object.keys($infoStore)[i]][0].filename, create_img_file($infoStore[Object.keys($infoStore)[i]][0].filename));
   }
 
   zip.generateAsync({type:"blob"}).then(function(content) {
       saveAs(content, "ISSAP_project_data_pascal_voc.zip");
   });             
+}
+
+async function create_img_file(pathName){
+  let response = await fetch(pathName);
+  let data = await response.blob();
+  let metadata = {
+    type: 'image/jpeg'
+  };
+  let file = new File([data], "test.jpg", metadata);
+  return file;
 }
 
 let dataLoading = false;
@@ -580,7 +733,7 @@ function load_project(f) {
             <p>A temporary fix is to use <span class="text_button" title="Load or Add Images" on:click={(e)=>accessFunc.upload_images(e)}>browser's file selector</span> to manually locate and add this file. We do not recommend this approach because it requires you to repeat this process every time your load this project in the application.</p>
           </div> <!-- end of file not found panel -->
 
-        {:else if $selectDisplay === "page_start_info"}
+        {:else if $selectDisplay === "page_start_info"}  
           <div id="page_start_info" class="display_area_content narrow_page_content">
             <ul>
               <li><b>BEFORE YOU BEGIN:</b> Ensure the images you want to upload are in the "public/iss_images/" folder.</li>
