@@ -26,93 +26,10 @@ import Image_Grid from './Image_Grid.svelte'
 
 onMount(async () => {
   console.log("ISSAP Image Excavation Tool");
-  init_leftsidebar_accordion();
+  init_sidebar_accordion();
   init_anno_accordion();
   curr_display("page_start_info");
 
-});
-
-document.addEventListener('DOMContentLoaded', function() {
-    const resizable = function(resizer) {
-    const direction = resizer.getAttribute('data-direction') || 'horizontal';
-    const prevSibling = resizer.previousElementSibling;
-    const nextSibling = resizer.nextElementSibling;
-
-    // The current position of mouse
-    let x = 0;
-    let y = 0;
-    let prevSiblingHeight = 0;
-    let prevSiblingWidth = 0;
-
-    // Handle the mousedown event
-    // that's triggered when user drags the resizer
-    const mouseDownHandler = function(e) {
-      // Get the current mouse position
-      x = e.clientX;
-      y = e.clientY;
-      const rect = prevSibling.getBoundingClientRect();
-      prevSiblingHeight = rect.height;
-      prevSiblingWidth = rect.width;
-
-      // Attach the listeners to `document`
-      document.addEventListener('mousemove', mouseMoveHandler);
-      document.addEventListener('mouseup', mouseUpHandler);
-    };
-
-    const mouseMoveHandler = function(e) {
-      // How far the mouse has been moved
-      const dx = e.clientX - x;
-      const dy = e.clientY - y;
-
-      switch (direction) {
-        case 'vertical':
-          const h =
-            ((prevSiblingHeight + dy) * 100) /
-            resizer.parentNode.getBoundingClientRect().height;
-          prevSibling.style.height = `${h}%`;
-          break;
-        case 'horizontal':
-        default:
-          const w =
-            ((prevSiblingWidth + dx) * 100) / resizer.parentNode.getBoundingClientRect().width;
-          prevSibling.style.width = `${w}%`;
-          break;
-      }
-
-      const cursor = direction === 'horizontal' ? 'col-resize' : 'row-resize';
-      resizer.style.cursor = cursor;
-      document.body.style.cursor = cursor;
-
-      prevSibling.style.userSelect = 'none';
-      prevSibling.style.pointerEvents = 'none';
-
-      nextSibling.style.userSelect = 'none';
-      nextSibling.style.pointerEvents = 'none';
-    };
-
-    const mouseUpHandler = function() {
-      resizer.style.removeProperty('cursor');
-      document.body.style.removeProperty('cursor');
-
-      prevSibling.style.removeProperty('user-select');
-      prevSibling.style.removeProperty('pointer-events');
-
-      nextSibling.style.removeProperty('user-select');
-      nextSibling.style.removeProperty('pointer-events');
-
-      // Remove the handlers of `mousemove` and `mouseup`
-      document.removeEventListener('mousemove', mouseMoveHandler);
-      document.removeEventListener('mouseup', mouseUpHandler);
-    };
-
-    // Attach the handler
-    resizer.addEventListener('mousedown', mouseDownHandler);
-  };
-
-  // Query all resizers
-  document.querySelectorAll('.resizer').forEach(function(ele) {
-    resizable(ele);
-  });
 });
 
 $: if ($infoStore === {}) {
@@ -124,22 +41,16 @@ $: if ($selectDisplay) {
 }
 
 
-function init_leftsidebar_accordion() {
-  var leftsidebar = document.getElementById('leftsidebar');
-  leftsidebar.style.width = '18rem';
+function init_sidebar_accordion() {
+  var sidebar = document.getElementById('sidebar');
+  sidebar.style.width = '18rem';
 
-  var acc = document.getElementsByClassName('leftsidebar_accordion');
+  var acc = document.getElementsByClassName('sidebar_accordion');
   var i;
   for ( i = 0; i < acc.length; ++i ) {
     acc[i].addEventListener('click', function() {
       this.classList.toggle('active');
       this.nextElementSibling.classList.toggle('show');
-
-      switch( this.innerHTML ) {
-      case 'Project':
-        update_img_fn_list();
-        break;
-      }
     });
   }
 }
@@ -611,6 +522,7 @@ function load_project(f) {
   chckFilelist = true;
 }
 
+
 </script>
 
   <svelte:head>
@@ -710,17 +622,6 @@ function load_project(f) {
               </div>
             </div>
 
-            <!-- <div class="row">
-              <div class="variable">
-                <div class="name">Region Label</div>
-                <div class="desc">By default, each region in an image is labelled using the region-id. Here, you can select a more descriptive labelling of regions.</div>
-              </div>
-
-              <div class="value">
-                <select></select>
-              </div>
-            </div> -->
-
           </div> <!-- end of settings panel -->
 
         {:else if $selectDisplay === "page_404"}
@@ -728,7 +629,7 @@ function load_project(f) {
             <h2>File Not Found</h2>
             <p>Filename: <span style="font-family:Mono;" id="page_404_filename"></span></p>
 
-            <p>We recommend that you update the default path in <span class="text_button" title="Show Project Settings" on:click={() => settings_panel_toggle()}>project settings</span> to the folder which contains this image.</p>
+            <p>We recommend that you update the default path in <span class="text_button" title="Show Project Settings" on:click={() => ($selectDisplay === "settings_panel")}>project settings</span> to the folder which contains this image.</p>
 
             <p>A temporary fix is to use <span class="text_button" title="Load or Add Images" on:click={(e)=>accessFunc.upload_images(e)}>browser's file selector</span> to manually locate and add this file. We do not recommend this approach because it requires you to repeat this process every time your load this project in the application.</p>
           </div> <!-- end of file not found panel -->
@@ -799,7 +700,7 @@ function load_project(f) {
       <!-- end of middle_panel -->
     </div> 
 
-    <!-- leftsidebar -->
+    <!-- sidebar -->
     <div id="container__left">
       <Sidebar bind:this={accessFunc}/>
     </div>

@@ -8,9 +8,7 @@ import SelectorPack from '@recogito/annotorious-selector-pack';
 import ShpLbl from '@recogito/annotorious-shape-labels';
 import '@recogito/annotorious-openseadragon/dist/annotorious.min.css';
 
-import { viewer, pointlessStore, selectedID, infoStore, exifData, selectedShape, fileList, setImg, showImg, shpStore, artiStore, ctxtStore, zoomIn, zoomOut, centreImg, rowCheck, jumpToImgPanel, rmImg} from './stores.js';
-
-
+import { viewer, changingPicture, selectedID, infoStore, selectDisplay, selectedShape, fileList, setImg, showImg, shpStore, artiStore, ctxtStore, zoomIn, zoomOut, centreImg, rowCheck, jumpToImgPanel, rmImg} from './stores.js';
 
 let anno;
 
@@ -194,6 +192,31 @@ let key;
 
 function handleKeypress(event) {
     key = event.key;
+
+    if (key === 'ArrowRight' || key === 'ArrowLeft') {
+        let position = Object.values($infoStore).flat().findIndex(p => p.filename === $setImg);
+
+        if (key === "ArrowLeft") {
+            if (position !== 0) {
+                position -= 1;
+                $setImg = Object.values($infoStore).flat()[position].filename;
+                console.log($setImg)
+                $changingPicture = true;
+            }
+        } else if (key === "ArrowRight")  {
+            if (position !== Object.values($infoStore).flat().length - 1) {
+                position += 1;
+                $setImg = Object.values($infoStore).flat()[position].filename;
+                console.log($setImg)
+                $changingPicture = true;
+            }
+        }
+
+        if ($selectDisplay !== "image_panel") {
+            $selectDisplay = "image_panel"
+            $jumpToImgPanel = true;
+        }
+    }
     
     if (key === 'Backspace' && anno.getSelected() !== undefined) {
         const selected = anno.getSelected();

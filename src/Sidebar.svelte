@@ -4,6 +4,7 @@ import { infoStore, jumpToImgPanel, ctxtStore, pointlessStore, projName, selectD
 import ExifReader from 'exifreader';
 import Grid20 from "carbon-icons-svelte/lib/Grid20";
 import Image20 from "carbon-icons-svelte/lib/Image20";
+import Cursor_116 from "carbon-icons-svelte/lib/Cursor_116";
 
 
 let files = null; 
@@ -11,12 +12,13 @@ let flFilter;
 
 let fileInputImgs, image;
 
-let ctxtCt = 0;
+$: ctxtCt = Object.keys($infoStore).length;
 export const upload_images=(e)=> {
 		for (let i = 0; i < e.target.files.length; i++) {
 			image = e.target.files[i];
 
       let ctxtID = "ctxt_" + ctxtCt;
+      console.log(ctxtID)
       $infoStore[ctxtID] = [{
                             filename: image.name,
                             filepath: "/iss_images/" + image.name,
@@ -44,7 +46,6 @@ export const upload_images=(e)=> {
       }
       ctxtCt += 1;
 		}
-    console.log($infoStore)
     $selectDisplay = "image_panel"
 }
   
@@ -123,11 +124,11 @@ function return_to_img_panel() {
 
 </script>
 
-<div id="leftsidebar">
+<div id="sidebar">
 
     <!-- Project -->
-    <button class="leftsidebar_accordion active" id="project_panel_title">Project</button>
-    <div class="leftsidebar_accordion_panel show" id="img_fn_list_panel show">
+    <button class="sidebar_accordion active" id="project_panel_title">Project</button>
+    <div class="sidebar_accordion_panel show" id="img_fn_list_panel show">
       <div id="project_info_panel">
         <div class="row">
           <span class="col"><label for="project_name">Name: </label></span>
@@ -167,96 +168,29 @@ function return_to_img_panel() {
         </div>
     </div>
 
-    <button class="leftsidebar_accordion">Keyboard Shortcuts</button>
-    <div class="leftsidebar_accordion_panel">
-      <div style="display:block; text-align:center; padding:1rem;">TODO: THESE ARE NOT RELEVANT YET</div>
-      <table>
-        <tr>
-          <td style="width:8em;"><span class="key">&larr;</span>&nbsp;<span class="key">&uarr;</span>&nbsp;<span class="key">&rarr;</span>&nbsp;<span class="key">&darr;</span></td>
-          <td>Move selected region by 1 px (Shift to jump)</td>
-        </tr>
-        <tr>
-          <td><span class="key">a</span></td>
-          <td>Select all regions</td>
-        </tr>
-
-        <tr>
-          <td><span class="key">c</span></td>
-          <td>Copy selected regions</td>
-        </tr>
-        <tr>
-          <td><span class="key">v</span></td>
-          <td>Paste selected regions</td>
-        </tr>
-        <tr>
-          <td><span class="key">Backspace</span></td>
-          <td>Delete selected regions</td>
-        </tr>
-        <tr>
-          <td><span class="key">Ctrl</span> + Wheel</td>
-          <td>Zoom in/out (mouse cursor is over image)</td>
-        </tr>
-        <tr>
-          <td><span class="key">l</span></td>
-          <td>Toggle region label</td>
-        </tr>
-        <tr>
-          <td><span class="key">b</span></td>
-          <td>Toggle region boundary</td>
-        </tr>
-        <tr>
-          <td><span class="key">Enter</span></td>
-          <td>Finish drawing polyshape</td>
-        </tr>
-        <tr>
-          <td><span class="key">d</span></td>
-          <td>Delete last polyshape vertex</td>
-        </tr>
-      </table>
-
-      <div style="display:block; text-align:center; padding:1rem;">Always Available</div>
+    <button class="sidebar_accordion">Keyboard Shortcuts</button>
+    <div class="sidebar_accordion_panel">
       <table>
         <tr>
           <td style="width:8em;"><span class="key">&larr;</span>&nbsp;<span class="key">&rarr;</span></td>
           <td>Move to next/previous image</td>
         </tr>
         <tr>
-          <td><span class="key">+</span>&nbsp;<span class="key">-</span>&nbsp;<span class="key">=</span></td>
-          <td>Zoom in/out/reset</td>
+          <td><span class="key">Backspace</span></td>
+          <td>Delete selected annotation</td>
         </tr>
         <tr>
-          <td><span class="key">&uarr;</span></td>
-          <td>Update region label</td>
+          <td><span class="key">Shift</span> + <Cursor_116 /> </td>
+          <td>Draw annotation</td>
         </tr>
         <tr>
-          <td><span class="key">&darr;</span></td>
-          <td>Update region colour</td>
+          <td>Scroll</td>
+          <td>Zoom in/out (mouse cursor is over image)</td>
         </tr>
         <tr>
-          <td><span class="key">Spacebar</span></td>
-          <td>Toggle annotation editor (Ctrl to toggle on image editor)</td>
+          <td><Cursor_116 /></td>
+          <td>Pan across image</td>
         </tr>
-        <tr>
-          <td><span class="key">Home</span> / <span class="key">h</span></td>
-          <td>Jump to first image</td>
-        </tr>
-        <tr>
-          <td><span class="key">End</span> / <span class="key">e</span></td>
-          <td>Jump to last image</td>
-        </tr>
-        <tr>
-          <td><span class="key">PgUp</span> / <span class="key">u</span></td>
-          <td>Jump several images</td>
-        </tr>
-        <tr>
-          <td><span class="key">PgDown</span> / <span class="key">d</span></td>
-          <td>Jump several images</td>
-        </tr>
-
-        <tr>
-          <td><span class="key">Esc</span></td>
-          <td>Cancel ongoing task</td>
-        </tr>
-      </table>
+      </table>      
     </div>
 </div>

@@ -5,10 +5,6 @@ import { infoStore, showImg, shpStore, selectedID, os, ag, phg, ctxtInfo, rowChe
 let view;
 let provenance;
 
-// let os = [{"us":"USA"},{"eur":"ESA"},{"unknown":"Unknown"}];
-// let ag = [{"esa":"ESA"},{"nasa":"NASA"},{"unknown":"Unknown"}];
-// let phg = [{"unknown":"Unknown"}, {"kb":"Kayla Barron"}, {"rj":"Raja Chari"}, {"tm":"Thomas Marshburn"}, {"mm":"Matthias Maurer"}, {"mvh": "Mark Vande Hei"}];
-
 let currentTable = [];
 let artiHeaders = ["Artifact_ID", "Name", "Type", "Fixed", "Persistence", "Notes", "Recorded_by", "Date_Added"];
 let ctxtHeaders = ["Context_Number", "Provenance", "Photographer", "Square", "Module", "Orbital_Segment", "Agency", "Context_Type", "Description", "Interpretation", "Problems"];
@@ -63,10 +59,6 @@ $: if ($shpStore) {
     }
 }
 
-let findProv;
-$: if (findProv !== undefined) {
-    console.log(findProv.innerText)
-}
 const addArtiRow = () => (currentTable.push({ 
                         arti_id: $shpStore[$selectedID][$shpStore[$selectedID].length - 1].body[0].value, 
                         name: '', 
@@ -83,7 +75,7 @@ const addCtxtRow = () => ($ctxtInfo.push({
                         filename: $infoStore[$selectedID][0].filename,
                         filepath: $infoStore[$selectedID][0].filepath,
                         exifInfo: $infoStore[$selectedID][0].exifInfo,
-                        provenance: findProv.innerHTML, 
+                        provenance: provenance, 
                         photographer: {"unknown":"Unknown"},
                         type: '',
                         square: '',
@@ -113,8 +105,8 @@ function updateCategory(val) {
     <span class="text_button" on:click={() => view=''} id="button_edit_region_metadata" title="Manual annotations of regions">Artifact Annotations</span>
     <span class="text_button" on:click={() => view='context'} id="button_edit_file_metadata" title="Manual annotations of a file">Context Annotations</span>
 
-    <span class="button" style="float:right;margin-right:0.2rem;" on:click={() => annotation_editor_increase_content_size()} title="Increase size of contents in annotation editor">&plus;</span>
-    <span class="button" style="float:right;margin-right:0.2rem;" on:click={() => annotation_editor_decrease_content_size()} title="Decrease size of contents in annotation editor">&minus;</span>
+    <!-- <span class="button" style="float:right;margin-right:0.2rem;" on:click={() => annotation_editor_increase_content_size()} title="Increase size of contents in annotation editor">&plus;</span>
+    <span class="button" style="float:right;margin-right:0.2rem;" on:click={() => annotation_editor_decrease_content_size()} title="Decrease size of contents in annotation editor">&minus;</span> -->
 </div>
 
 <div id ="annotation_editor">
@@ -131,7 +123,7 @@ function updateCategory(val) {
                 {$selectedID}
             </span>
             <span class="col">
-                <div bind:this={findProv}>{provenance}</div>
+                <div>{provenance}</div>
             </span>
             <span class="col">
                 <select bind:value={$infoStore[$selectedID][0].photographer}>

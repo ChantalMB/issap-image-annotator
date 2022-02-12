@@ -44,7 +44,7 @@ export const typeCategory = writable([]);
 
 export const os = writable([{"unknown":"Unknown"},{"us":"USA"},{"eur":"EUR"},{"ca":"CA"}]);
 export const ag = writable([{"unknown":"Unknown"}, {"esa":"ESA"},{"nasa":"NASA"},{"csa":"CSA"}]);
-export const phg = writable([{"unknown":"Unknown"}, {"kb":"Kayla Barron"}, {"rj":"Raja Chari"}, {"tm":"Thomas Marshburn"}, {"mm":"Matthias Maurer"}, {"mvh": "Mark Vande Hei"}]);
+export const phg = writable([{"unknown":"Unknown"}, {"kb":"Kayla Barron"}, {"rc":"Raja Chari"}, {"tm":"Thomas Marshburn"}, {"mm":"Matthias Maurer"}, {"mvh": "Mark Vande Hei"}]);
 
 
 

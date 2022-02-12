@@ -73,7 +73,7 @@ button.anno_accordion.active:after { content: '\25E2'; color: red; top:0;}
 .anno_accordion_panel { display:none; padding-left:0.27em; font-size:small; }
 .anno_accordion_panel.show { display:block; outline: none;}
 
-/* Region shape selection panel inside leftsidebar */
+/* Region shape selection panel inside sidebar */
 ul.region_shape { font-size:large; list-style-type:none; overflow:hidden; padding:0.1em 0; margin:0; }
 ul.region_shape li {padding: 3px;}
 ul.region_shape li:hover { cursor:pointer; color:#ffffff; stroke:#ff0000; }
@@ -87,7 +87,7 @@ li#region_shape_polyline {
   padding-left: 3px;
 }
 
-/* Middle panel: containing #image_panel, #leftsidebar */
+/* Middle panel: containing #image_panel, #sidebar */
 .middle_panel { 
   display: flex;
 
@@ -155,7 +155,7 @@ li#region_shape_polyline {
   justify-content: center;
 }
 
-#leftsidebar { z-index:10; vertical-align:top; display: table-cell; width: 18rem;}
+#sidebar { z-index:10; vertical-align:top; display: table-cell; width: 18rem;}
 #display_area { display:table-cell; height: 100%; z-index:2; margin:auto; vertical-align:top; align-items: center;}
 /* layers of canvas */
 #image_panel        { position:relative; outline:none; visibility:visible; opacity:1;}
@@ -198,22 +198,22 @@ li#region_shape_polyline {
   width: 150px;
 }
 
-#leftsidebar_collapse_panel { display:none; position:relative; z-index:10; vertical-align:top; }
-#leftsidebar_show_button { font-size:large; margin-left:0.1rem; }
-#leftsidebar_show_button:hover { color:red; cursor: pointer; }
+#sidebar_collapse_panel { display:none; position:relative; z-index:10; vertical-align:top; }
+#sidebar_show_button { font-size:large; margin-left:0.1rem; }
+#sidebar_show_button:hover { color:red; cursor: pointer; }
 
 /* Left sidebar accordion */
-button.leftsidebar_accordion { font-size:large; background-color:#f2f2f2; cursor:pointer; padding:0.5em 0.5em; width:100%; text-align:left; border:0; outline:none; }
-button.leftsidebar_accordion:focus { outline: none; }
-button.leftsidebar_accordion.active, button.leftsidebar_accordion:hover { background-color: #e6e6e6; }
-button.leftsidebar_accordion:after { content:'\02795'; color:#4d4d4d; float:right; }
-button.leftsidebar_accordion.active:after { content: '\2796'; }
-.leftsidebar_accordion_panel { display:none; padding:0 0.5em; font-size:small; border-right:2px solid #f2f2f2; border-bottom:2px solid #f2f2f2; }
-.leftsidebar_accordion_panel.show { display:block; }
+button.sidebar_accordion { font-size:large; background-color:#f2f2f2; cursor:pointer; padding:0.5em 0.5em; width:100%; text-align:left; border:0; outline:none; }
+button.sidebar_accordion:focus { outline: none; }
+button.sidebar_accordion.active, button.sidebar_accordion:hover { background-color: #e6e6e6; }
+button.sidebar_accordion:after { content:'\02795'; color:#4d4d4d; float:right; }
+button.sidebar_accordion.active:after { content: '\2796'; }
+.sidebar_accordion_panel { display:none; padding:0 0.5em; font-size:small; border-right:2px solid #f2f2f2; border-bottom:2px solid #f2f2f2; }
+.sidebar_accordion_panel.show { display:block; }
 
 /* Keyboard shortcut panel */
-.leftsidebar_accordion_panel table { border-collapse:collapse; }
-.leftsidebar_accordion_panel td { border:1px solid #f2f2f2; padding:0.2rem 0.4rem; }
+.sidebar_accordion_panel table { border-collapse:collapse; }
+.sidebar_accordion_panel td { border:1px solid #f2f2f2; padding:0.2rem 0.4rem; }
 
 /* buttons */
 .button_panel { display:inline-block; width:100%; margin:0.2rem 0; }
@@ -295,7 +295,7 @@ button.leftsidebar_accordion.active:after { content: '\2796'; }
 #project_info_panel .col input[type=text] { font-size:0.8rem; border:none; border-bottom:1px solid #cccccc; margin: 0; width:100%;}
 #project_info_panel .col input:focus      { border-bottom:1px solid #000000; background-color:#f2f2f2; color:#000000; }
 
-/* cursor coordinates inside region shape selection panel in leftsidebar */
+/* cursor coordinates inside region shape selection panel in sidebar */
 #region_info { font-size:0.8em; margin-bottom:0.4em; }
 
 .rectangle {
@@ -305,7 +305,7 @@ button.leftsidebar_accordion.active:after { content: '\2796'; }
 }
 
 
-/* Loaded image list shown in leftsidebar panel */
+/* Loaded image list shown in sidebar panel */
 #img_fn_list    { display:block; font-size:small; overflow:auto; min-height:10rem; max-height:25rem; }
 #img_fn_list ul { position:relative; line-height:1.3em; margin:0; padding:0; list-style-type:none;}
 #img_fn_list li { white-space:nowrap; display:block; padding:0 0.4rem; }
