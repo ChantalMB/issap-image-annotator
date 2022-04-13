@@ -15,13 +15,25 @@ import area from 'area-polygon';
 
 
 import Sidebar from './Sidebar.svelte';
-let accessFunc;
 
 import Annotation_Editor from './Annotation_Editor.svelte';
 
 import Annotation_Canvas from './Annotation_Canvas.svelte'
 import Toolbar from './Toolbar.svelte';
 import Image_Grid from './Image_Grid.svelte'
+
+
+let accessFunc;
+
+let files, fileInputImgs;
+let allFiles = [];
+
+let scrollToDiv;
+
+let dataLoading = false;
+
+let fileInputJSON;
+let chckFilelist = false;
 
 
 onMount(async () => {
@@ -32,6 +44,7 @@ onMount(async () => {
 
 });
 
+// if there are no pictures show start page
 $: if ($infoStore === {}) {
   curr_display("page_start_info")
 }
@@ -41,6 +54,7 @@ $: if ($selectDisplay) {
 }
 
 
+// accordion dropdown for sidebar
 function init_sidebar_accordion() {
   var sidebar = document.getElementById('sidebar');
   sidebar.style.width = '18rem';
@@ -55,6 +69,7 @@ function init_sidebar_accordion() {
   }
 }
 
+// accordion dropdown for toolbar
 function init_anno_accordion() {
   var acc = document.getElementsByClassName('anno_accordion');
   var i;
@@ -68,29 +83,27 @@ function init_anno_accordion() {
 
 }
 
+// sets the main editor window
 function curr_display(selection) {
   $selectDisplay = selection;
 }
-
-let files, fileInputImgs;
-let allFiles = [];
 
 $: if (allFiles.length > 0) {
     accessFunc.create_struct();
 
 }
 
-let scrollToDiv;
-
+// autoscroller when annotation is added to annotation editor
 async function autoScroll() {
-		await tick(); // Wait until DOM was updated
+		await tick(); // Wait until DOM is updated
 		scrollToDiv.scrollTo({ top: scrollToDiv.scrollHeight, behavior: 'smooth' }); // Scroll to the bottom of the container
-	}
+}
 
 $: if ($rowCheck) {
     autoScroll();
 }
 
+// jumps to selected image file
 function jump_to_image(f) {
   $selectDisplay = "image_panel"
   $jumpToImgPanel = true;
@@ -110,6 +123,7 @@ function jump_to_image(f) {
   $setImg = f;
 }
 
+// download current project as line-separated CSV
 function download_as_csv() {
   let ctxtCSV = "Filename|Context_Number|Provenance|Photographer|Square|Module|Orbital_Segment|Agency|Context_Type|Description|Interpretation|Problems\n"
 
@@ -181,6 +195,8 @@ function download_as_csv() {
 
 }
 
+
+// download current projected in COCO format
 function download_as_coco() {
   let saveCOCO = {
                   'info': {},
@@ -326,6 +342,7 @@ function download_as_coco() {
   }); 
 }
 
+// download current projected in Pascal VOC format
 function download_as_voc() {
   let ctxtForFilename = [];
   let totalImgs = [];
@@ -334,6 +351,8 @@ function download_as_voc() {
     let ref = Object.keys($infoStore)[i]
     ctxtForFilename.push($infoStore[ref][0].filename)
 
+    // why yes I AM creating XML the dirty way
+    // we don't talk about it
     let base = `<annotation>
   <folder>iss_images</folder>
   <filename>${$infoStore[ref][0].filename}</filename>
@@ -421,6 +440,7 @@ function download_as_voc() {
   });             
 }
 
+// TO DO: trying to get the image to output with the ML formats
 async function create_img_file(pathName){
   let response = await fetch(pathName);
   let data = await response.blob();
@@ -431,8 +451,7 @@ async function create_img_file(pathName){
   return file;
 }
 
-let dataLoading = false;
-
+// autosave
 setInterval(function() {
   save_project();
 }, 900000)
@@ -457,9 +476,9 @@ function save_project() {
   }
   console.log(fullSave)
   write_to_json(fullSave);
-
 }
 
+// save current project
 async function write_to_json(data) {
   // TO DO: PASS $NAME FOR FILE SAVE NAME
   let req = {}
@@ -483,8 +502,7 @@ async function write_to_json(data) {
 
 }
 
-let fileInputJSON;
-let chckFilelist = false;
+// load previous project
 const get_project_file=(e)=> {
   let json;
   let reader = new FileReader();
@@ -514,7 +532,18 @@ function load_project(f) {
       }
     }
   }
+
   $infoStore = f;
+
+  for ( let i = 0; i < Object.keys($infoStore).length; ++i ) {
+    let ctxtRef = Object.keys(f)[i]
+    if ($infoStore[ctxtRef][0].provenance === '') {
+      $infoStore[ctxtRef][0].provenance = $infoStore[ctxtRef][0].exifInfo['DateCreated']['description']
+    }
+  }
+
+  // $infoStore[ctxtID][0].provenance = tags['DateCreated']['description']
+
   $shpStore = tempShpStore;
   $typeCategory = tempTypes;
   
@@ -542,7 +571,7 @@ function load_project(f) {
         <ul>
           <li>Project
             <ul>
-              <li on:click={() => {fileInputJSON.click()}} title="Load project (from a JSON file)">Load</li>
+              <li on:click={() => {fileInputJSON.click()}} title="Load project (from a JSON file)">Load Project</li>
                 <input bind:files style="display:none" type="file" accept=".json" on:change={(e)=>get_project_file(e)} bind:this={fileInputJSON} >
               <li on:click={() => save_project()} title="Save this project (as a JSON file)">Save</li>
               <li on:click={() => curr_display("settings_panel")} title="Show/edit project settings">Settings</li>

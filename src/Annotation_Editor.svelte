@@ -2,11 +2,11 @@
 import { infoStore, showImg, shpStore, selectedID, os, ag, phg, ctxtInfo, rowCheck, typeCategory } from './stores.js';
 
 
-let view;
+let view = '';
 let provenance;
 
 let currentTable = [];
-let artiHeaders = ["Artifact_ID", "Name", "Type", "Fixed", "Persistence", "Notes", "Recorded_by", "Date_Added"];
+let artiHeaders = ["Artifact_ID", "Name", "Type", "Material", "Colour", "Fixed", "Persistence", "Notes", "Recorded_by", "Date_Added"];
 let ctxtHeaders = ["Context_Number", "Provenance", "Photographer", "Square", "Module", "Orbital_Segment", "Agency", "Context_Type", "Description", "Interpretation", "Problems"];
 
 function get_curr_date() {
@@ -20,7 +20,6 @@ function get_curr_date() {
     
     return dateRecorded;
 }
-
                 
 $: if ($infoStore[$selectedID] !== undefined) {
     currentTable = $infoStore[$selectedID][0].artifacts;
@@ -28,13 +27,6 @@ $: if ($infoStore[$selectedID] !== undefined) {
 
 
 $: $ctxtInfo = $infoStore[$selectedID];
-$: if ($ctxtInfo !== undefined) {
-    if ($ctxtInfo[0].exifInfo['DateCreated'] !== undefined) {
-        provenance = $ctxtInfo[0].exifInfo['DateCreated']['description'];
-    } else {
-        provenance = "Unspecified";
-    }
-}
 
 
 $: if ($showImg) {
@@ -63,6 +55,8 @@ const addArtiRow = () => (currentTable.push({
                         arti_id: $shpStore[$selectedID][$shpStore[$selectedID].length - 1].body[0].value, 
                         name: '', 
                         type: '',
+                        material: '',
+                        colour: '',
                         fixed: 'y',
                         persistence: 'y',
                         artiNotes: '',
@@ -75,7 +69,7 @@ const addCtxtRow = () => ($ctxtInfo.push({
                         filename: $infoStore[$selectedID][0].filename,
                         filepath: $infoStore[$selectedID][0].filepath,
                         exifInfo: $infoStore[$selectedID][0].exifInfo,
-                        provenance: provenance, 
+                        provenance: $infoStore[$selectedID][0].provenance, 
                         photographer: {"unknown":"Unknown"},
                         type: '',
                         square: '',
@@ -92,6 +86,8 @@ const addCtxtRow = () => ($ctxtInfo.push({
 
 $: console.log($infoStore)
 
+$: if ($infoStore[$selectedID]) {console.log("ADDING CTXT")}
+
 function updateCategory(val) {
     if ($typeCategory.indexOf(val) === -1) {
         $typeCategory.push(val)
@@ -101,14 +97,18 @@ function updateCategory(val) {
 
 </script>
 
-<div class="button_panel">
-    <span class="text_button" on:click={() => view=''} id="button_edit_region_metadata" title="Manual annotations of regions">Artifact Annotations</span>
-    <span class="text_button" on:click={() => view='context'} id="button_edit_file_metadata" title="Manual annotations of a file">Context Annotations</span>
-
-    <!-- <span class="button" style="float:right;margin-right:0.2rem;" on:click={() => annotation_editor_increase_content_size()} title="Increase size of contents in annotation editor">&plus;</span>
-    <span class="button" style="float:right;margin-right:0.2rem;" on:click={() => annotation_editor_decrease_content_size()} title="Decrease size of contents in annotation editor">&minus;</span> -->
+<div class="sticky_container">
+    <ul class="metadata_editor">
+        <li class="me_tab" class:selected="{view === ''}" on:click={() => view = ''}>
+            <span class="selected_view" id="arti_metadata" title="Manual annotations of artifacts">Artifact Annotations</span>
+        </li>
+        <li class="me_tab" class:selected="{view === 'context'}" on:click={() => view = 'context'}>
+            <span class="selected_view" id="context_metadata" title="Manual annotations of contexts">Context Annotations</span>
+        </li>
+    </ul>
 </div>
 
+<div class="annotation_table">
 <div id ="annotation_editor">
     {#if view === "context"}
         <div class="row" id="annotation_editor_header">
@@ -123,7 +123,7 @@ function updateCategory(val) {
                 {$selectedID}
             </span>
             <span class="col">
-                <div>{provenance}</div>
+                <textarea bind:value={$infoStore[$selectedID][0].provenance} placeholder={$infoStore[$selectedID][0].provenance}></textarea>
             </span>
             <span class="col">
                 <select bind:value={$infoStore[$selectedID][0].photographer}>
@@ -174,7 +174,6 @@ function updateCategory(val) {
         {/if}
 
     {:else}
-        <!-- TO DO: FIX THE DATALISTS-->
         <div class="row" id="annotation_editor_header">
             {#each artiHeaders as i}
                 <span class="col header">{i}</span>
@@ -190,6 +189,7 @@ function updateCategory(val) {
                         <textarea bind:value={$infoStore[$selectedID][0].artifacts[i].name}></textarea>
                     </span>
                     <span class="col">
+                        <!-- there is no ice cream in this project, it's just that whenever I change any of these labels it breaks and I have no idea why-->
                         <input list="ice-cream-flavors" id="ice-cream-choice" name="ice-cream-choice" on:change={()=> updateCategory($infoStore[$selectedID][0].artifacts[i].type)} bind:value={$infoStore[$selectedID][0].artifacts[i].type} />
                             <datalist id="ice-cream-flavors">
                                 {#each $typeCategory as c}
@@ -197,25 +197,31 @@ function updateCategory(val) {
                                 {/each}
                             </datalist>
                     </span>
+                    <span class=col>
+                        <textarea bind:value={$infoStore[$selectedID][0].artifacts[i].material}></textarea>
+                    </span>
+                    <span class=col>
+                        <textarea bind:value={$infoStore[$selectedID][0].artifacts[i].colour}></textarea>
+                    </span>
                     <span class="col">
                         <label>
-                            <input type=radio bind:group={$infoStore[$selectedID][0].artifacts[i].fixed} name="fixed1" value={"yes"}>
+                            <input type=radio bind:group={$infoStore[$selectedID][0].artifacts[i].fixed} value={"yes"}>
                             Yes
                         </label>
                 
                         <label>
-                            <input type=radio bind:group={$infoStore[$selectedID][0].artifacts[i].fixed} name="fixed2" value={"no"}>
+                            <input type=radio bind:group={$infoStore[$selectedID][0].artifacts[i].fixed} value={"no"}>
                             No
                         </label>
                     </span>
                     <span class="col">
                         <label>
-                            <input type=radio bind:group={$infoStore[$selectedID][0].artifacts[i].persistence} name="per1" value={"yes"}>
+                            <input type=radio bind:group={$infoStore[$selectedID][0].artifacts[i].persistence} value={"yes"}>
                             Yes
                         </label>
                 
                         <label>
-                            <input type=radio bind:group={$infoStore[$selectedID][0].artifacts[i].persistence} name="per2" value={"no"}>
+                            <input type=radio bind:group={$infoStore[$selectedID][0].artifacts[i].persistence} value={"no"}>
                             No
                         </label>
                     </span>
@@ -234,4 +240,5 @@ function updateCategory(val) {
 
         
     {/if}
+</div>
 </div>

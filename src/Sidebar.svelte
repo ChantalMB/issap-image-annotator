@@ -42,6 +42,11 @@ export const upload_images=(e)=> {
       reader.onload = e => {
         ExifReader.load(e.target.result).then(function (tags) {
                         $infoStore[ctxtID][0].exifInfo = tags;
+                        if (tags['DateCreated'] !== undefined) {
+                          $infoStore[ctxtID][0].provenance = tags['DateCreated']['description']
+                        } else {
+                          $infoStore[ctxtID][0].provenance = "Undetected";
+                        }
         });
       }
       ctxtCt += 1;
