@@ -42,9 +42,13 @@ export const viewer = writable();
 
 export const typeCategory = writable([]);
 
-export const os = writable([{"unknown":"Unknown"},{"us":"USA"},{"eur":"EUR"},{"ca":"CA"}]);
-export const ag = writable([{"unknown":"Unknown"}, {"esa":"ESA"},{"nasa":"NASA"},{"csa":"CSA"}]);
-export const phg = writable([{"unknown":"Unknown"}, {"kb":"Kayla Barron"}, {"rc":"Raja Chari"}, {"tm":"Thomas Marshburn"}, {"mm":"Matthias Maurer"}, {"mvh": "Mark Vande Hei"}]);
+export const osCategory = writable(["Unknown", "USA", "EUR", "CA"]);
+export const agCategory = writable(["Unknown", "NASA", "ESA", "CSA"]);
+export const astroCategory = writable(["Unknown", "Kayla Barron", "Raja Chari", "Thomas Marshburn", "Matthias Maurer", "Mark Vande Hei"]);
+
+// export const os = writable([{"unknown":"Unknown"},{"us":"USA"},{"eur":"EUR"},{"ca":"CA"}]);
+// export const ag = writable([{"unknown":"Unknown"}, {"esa":"ESA"},{"nasa":"NASA"},{"csa":"CSA"}]);
+// export const phg = writable([{"unknown":"Unknown"}, {"kb":"Kayla Barron"}, {"rc":"Raja Chari"}, {"tm":"Thomas Marshburn"}, {"mm":"Matthias Maurer"}, {"mvh": "Mark Vande Hei"}]);
 
 
 

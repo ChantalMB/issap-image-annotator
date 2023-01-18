@@ -8,7 +8,7 @@ import { Diamonds } from 'svelte-loading-spinners'
 
 
 
-import { typeCategory, infoStore, projName, selectDisplay, setImg, exifData, selectedID, artiStore, fileList, ctxtStore, shpStore, rowCheck, changingPicture, jumpToImgPanel } from './stores.js';
+import { typeCategory, infoStore, projName, selectDisplay, setImg, exifData, selectedID, artiStore, fileList, ctxtStore, shpStore, rowCheck, changingPicture, jumpToImgPanel, astroCategory } from './stores.js';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 import area from 'area-polygon';
@@ -474,13 +474,24 @@ function save_project() {
     }
     fullSave[ref][0].artifacts = JSON.stringify(fullSave[ref][0].artifacts);
   }
-  console.log(fullSave)
-  write_to_json(fullSave);
+  let formatSave = JSON.stringify(fullSave)
+  let fname = $projName + ".json"
+  let blob = new Blob([formatSave], {type: "application/json"});
+  saveAs(blob, fname);
+
+  // rm once JSON error fixed?
+  console.log("saving...")
+  setTimeout(function(){
+    dataLoading = false;
+    console.log("save complete!")
+  }, 1500);
+  // write_to_json(fullSave);
 }
 
+// CURRENTLY NOT CALLED
 // save current project
 async function write_to_json(data) {
-  // TO DO: PASS $NAME FOR FILE SAVE NAME
+  // TO DO: PASS NAME FOR FILE SAVE NAME
   let req = {}
   req[$projName] = data
 
@@ -507,9 +518,15 @@ const get_project_file=(e)=> {
   let json;
   let reader = new FileReader();
 
-	reader.readAsText(e.target.files[0]);
+  reader.readAsText(e.target.files[0]);
   reader.onload = e => {
     json = JSON.parse(e.target.result)
+    if (typeof(json[Object.keys(json)[0]][0].artifacts) == "string") { 
+      for (let i = 0; i < Object.keys(json).length; i++) {
+        json[Object.keys(json)[i]][0].artifacts = JSON.parse(json[Object.keys(json)[i]][0].artifacts)
+      }
+    } 
+    console.log(json)
     load_project(json)
   }
 }
@@ -550,6 +567,7 @@ function load_project(f) {
   jump_to_image($infoStore[Object.keys($infoStore)[0]][0].filename)
   chckFilelist = true;
 }
+
 
 
 </script>

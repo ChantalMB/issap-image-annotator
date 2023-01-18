@@ -4,7 +4,7 @@ import { onMount } from 'svelte';
 import { Annotorious } from '@recogito/annotorious';
 import '@recogito/annotorious/dist/annotorious.min.css';
 
-import { infoStore, selectDisplay, setImg, selectedID, shpStore, jumpToImgPanel, os, ag, phg } from './stores.js';
+import { infoStore, selectDisplay, setImg, selectedID, shpStore, jumpToImgPanel, astroCategory, osCategory, agCategory } from './stores.js';
 let ctxtFilter;
 let secondaryFilter;
 let anno;
@@ -48,7 +48,7 @@ $: console.log(ctxtFilter)
 
             {#if ctxtFilter === "Photographer"}
                 <select bind:value={secondaryFilter}>
-                    {#each $phg as p}
+                    {#each $astroCategory as p}
                         <option value={p}>
                             {Object.values(p)}
                         </option>
@@ -56,7 +56,7 @@ $: console.log(ctxtFilter)
                 </select>
             {:else if ctxtFilter === "Orbital Segment"}
                 <select bind:value={secondaryFilter}>
-                    {#each $os as loc}
+                    {#each $osCategory as loc}
                         <option value={loc}>
                             {Object.values(loc)}
                         </option>
@@ -64,7 +64,7 @@ $: console.log(ctxtFilter)
                 </select>
             {:else if ctxtFilter === "Agency"}
                 <select bind:value={secondaryFilter}>
-                    {#each $ag as org}
+                    {#each $agCategory as org}
                         <option value={org}>
                             {Object.values(org)}
                         </option>

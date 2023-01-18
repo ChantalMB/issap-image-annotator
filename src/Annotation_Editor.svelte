@@ -1,12 +1,12 @@
 <script>
-import { infoStore, showImg, shpStore, selectedID, os, ag, phg, ctxtInfo, rowCheck, typeCategory } from './stores.js';
+import { infoStore, showImg, shpStore, selectedID, ctxtInfo, rowCheck, typeCategory, astroCategory, osCategory, agCategory } from './stores.js';
 
 
 let view = '';
 let provenance;
 
 let currentTable = [];
-let artiHeaders = ["Artifact_ID", "Name", "Type", "Material", "Colour", "Fixed", "Persistence", "Notes", "Recorded_by", "Date_Added"];
+let artiHeaders = ["Artifact_ID", "Name", "Type", "Subtype", "Material", "Colour", "Fixed", "Persistence", "Orientation", "Notes", "Recorded_by", "Date_Added"];
 let ctxtHeaders = ["Context_Number", "Provenance", "Photographer", "Square", "Module", "Orbital_Segment", "Agency", "Context_Type", "Description", "Interpretation", "Problems"];
 
 function get_curr_date() {
@@ -24,7 +24,6 @@ function get_curr_date() {
 $: if ($infoStore[$selectedID] !== undefined) {
     currentTable = $infoStore[$selectedID][0].artifacts;
 }
-
 
 $: $ctxtInfo = $infoStore[$selectedID];
 
@@ -55,10 +54,12 @@ const addArtiRow = () => (currentTable.push({
                         arti_id: $shpStore[$selectedID][$shpStore[$selectedID].length - 1].body[0].value, 
                         name: '', 
                         type: '',
+                        subtype: '',
                         material: '',
                         colour: '',
                         fixed: 'y',
                         persistence: 'y',
+                        orientation: '',
                         artiNotes: '',
                         recorder: '',
                         dateRecorded: get_curr_date(),
@@ -70,12 +71,12 @@ const addCtxtRow = () => ($ctxtInfo.push({
                         filepath: $infoStore[$selectedID][0].filepath,
                         exifInfo: $infoStore[$selectedID][0].exifInfo,
                         provenance: $infoStore[$selectedID][0].provenance, 
-                        photographer: {"unknown":"Unknown"},
+                        photographer: '',
                         type: '',
                         square: '',
                         module: '',
-                        orbital_seg: {"unknown":"Unknown"},
-                        agency: {"unknown":"Unknown"},
+                        orbital_seg: '',
+                        agency: '',
                         ctxt_type: '',
                         desc: '',
                         interp: '',
@@ -126,13 +127,12 @@ function updateCategory(val) {
                 <textarea bind:value={$infoStore[$selectedID][0].provenance} placeholder={$infoStore[$selectedID][0].provenance}></textarea>
             </span>
             <span class="col">
-                <select bind:value={$infoStore[$selectedID][0].photographer}>
-                    {#each $phg as p}
-                        <option value={p}>
-                            {Object.values(p)}
-                        </option>
-                    {/each}
-                </select>
+                <input list="astro_phgs" id="astro" name="astro" bind:value={$infoStore[$selectedID][0].photographer} />
+                    <datalist id="astro_phgs">
+                        {#each $astroCategory as p}
+                            <option value={p}>
+                        {/each}
+                    </datalist>
             </span>
             <span class="col">
                 <textarea bind:value={$infoStore[$selectedID][0].square}></textarea>
@@ -141,22 +141,20 @@ function updateCategory(val) {
                 <textarea bind:value={$infoStore[$selectedID][0].module}></textarea>
             </span>
             <span class="col">
-                <select bind:value={$infoStore[$selectedID][0].orbital_seg}>
-                    {#each $os as loc}
-                        <option value={loc}>
-                            {Object.values(loc)}
-                        </option>
-                    {/each}
-                </select>
+                <input list="os_locs" id="os" name="os" bind:value={$infoStore[$selectedID][0].orbital_seg} />
+                    <datalist id="os_locs">
+                        {#each $osCategory as o}
+                            <option value={o}>
+                        {/each}
+                    </datalist>
             </span>
             <span class="col">
-                <select bind:value={$infoStore[$selectedID][0].agency}>
-                    {#each $ag as org}
-                        <option value={org}>
-                            {Object.values(org)}
-                        </option>
-                    {/each}
-                </select>
+                <input list="agencies" id="ag" name="ag" bind:value={$infoStore[$selectedID][0].agency} />
+                    <datalist id="agencies">
+                        {#each $agCategory as a}
+                            <option value={a}>
+                        {/each}
+                    </datalist>
             </span>
             <span class="col">
                 <textarea bind:value={$infoStore[$selectedID][0].ctxt_type}></textarea>
@@ -190,8 +188,17 @@ function updateCategory(val) {
                     </span>
                     <span class="col">
                         <!-- there is no ice cream in this project, it's just that whenever I change any of these labels it breaks and I have no idea why-->
-                        <input list="ice-cream-flavors" id="ice-cream-choice" name="ice-cream-choice" on:change={()=> updateCategory($infoStore[$selectedID][0].artifacts[i].type)} bind:value={$infoStore[$selectedID][0].artifacts[i].type} />
-                            <datalist id="ice-cream-flavors">
+                        <input list="type_list" id="type" name="type" on:change={()=> updateCategory($infoStore[$selectedID][0].artifacts[i].type)} bind:value={$infoStore[$selectedID][0].artifacts[i].type} />
+                            <datalist id="type_list">
+                                {#each $typeCategory as c}
+                                    <option value={c}>
+                                {/each}
+                            </datalist>
+                    </span>
+                    <span class="col">
+                        <!-- there is no ice cream in this project, it's just that whenever I change any of these labels it breaks and I have no idea why-->
+                        <input list="type_list" id="type" name="type" on:change={()=> updateCategory($infoStore[$selectedID][0].artifacts[i].subtype)} bind:value={$infoStore[$selectedID][0].artifacts[i].subtype} />
+                            <datalist id="type_list">
                                 {#each $typeCategory as c}
                                     <option value={c}>
                                 {/each}
@@ -224,6 +231,9 @@ function updateCategory(val) {
                             <input type=radio bind:group={$infoStore[$selectedID][0].artifacts[i].persistence} value={"no"}>
                             No
                         </label>
+                    </span>
+                    <span class="col">
+                        <textarea bind:value={$infoStore[$selectedID][0].artifacts[i].orientation}></textarea>
                     </span>
                     <span class="col">
                         <textarea bind:value={$infoStore[$selectedID][0].artifacts[i].artiNotes}></textarea>
